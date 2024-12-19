@@ -1,4 +1,5 @@
 from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from .serializers import RegisterSerializer
@@ -6,7 +7,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import CustomTokenObtainPairSerializer
 
 from rest_framework.parsers import MultiPartParser
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from tensorflow.keras.preprocessing.image import load_img, img_to_array
 from tensorflow.keras.models import load_model
 import numpy as np
@@ -27,17 +28,28 @@ class RegisterView(APIView):
 class LoginView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
+class DeleteUserView(APIView):
+    permission_classes = [IsAuthenticated]
 
+    def delete(self, request):
+        try:
+            # Get the logged-in user
+            user = request.user
+            user.delete()
+            return Response({"message": "User deleted successfully"}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # Load the trained model
-MODEL_PATH = os.path.join("models", "My_Efficient-B1_acc98.3.h5")  # Adjust path if necessary
+MODEL_PATH = os.path.join("models", "My_Efficient-B1_acc98.3.h5")  # Model Path
 model = load_model(MODEL_PATH)
 
 # Define class labels (update this list to match your model's output)
 CLASS_LABELS = ["Healthy", "Diseased"]  # Replace with your actual labels
 
 @api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def predict_image(request):
     # Ensure that MultiPartParser is being used
     parser_classes = [MultiPartParser]
