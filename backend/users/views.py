@@ -54,6 +54,12 @@ def predict_image(request):
     # Ensure that MultiPartParser is being used
     parser_classes = [MultiPartParser]
     
+    # Define class labels (update this list with your actual labels)
+    CLASS_LABELS = [
+        "Tomato___Bacterial_spot", "Tomato___Early_blight", "Tomato___Late_blight", "Tomato___Leaf_Mold", "Tomato___Septoria_leaf_spot",
+        "Tomato___Spider_mites Two-spotted_spider_mite", "Tomato___Target_Spot", "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "Tomato___Tomato_mosaic_virus", "Healthy"
+    ]  # Replace with your actual labels
+    
     # Check if the request contains an image
     if "image" not in request.data:
         return JsonResponse({"error": "No image provided"}, status=400)
@@ -64,17 +70,35 @@ def predict_image(request):
     try:
         # Convert the InMemoryUploadedFile to a file-like object
         img_file = Image.open(BytesIO(image.read()))
-        img = img_file.resize((224, 224))  # Resize to the required input size
-        img_array = img_to_array(img) / 255.0  # Normalize pixel values
-        img_array = np.expand_dims(img_array, axis=0)
+        
+        # Ensure the image has 3 channels (RGB)
+        if img_file.mode != "RGB":
+            img_file = img_file.convert("RGB")
+        
+        # Resize the image to the required input size
+        img = img_file.resize((224, 224))
+        
+        # Normalize pixel values and convert to NumPy array
+        img_array = img_to_array(img) / 255.0
+        img_array = np.expand_dims(img_array, axis=0)  # Add batch dimension
 
         # Make prediction
         predictions = model.predict(img_array)
+        
+        # Get the index of the highest predicted class
         predicted_class_index = np.argmax(predictions, axis=1)[0]
+        
+        # Map index to class label
         predicted_class = CLASS_LABELS[predicted_class_index]
+        
+        # Include probabilities for each class in the response
+        probabilities = {CLASS_LABELS[i]: float(predictions[0][i]) for i in range(len(CLASS_LABELS))}
 
         # Return the prediction result
-        return JsonResponse({"prediction": predicted_class})
+        return JsonResponse({
+            "prediction": predicted_class,
+            "probabilities": probabilities
+        })
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
