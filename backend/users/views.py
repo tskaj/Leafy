@@ -102,3 +102,39 @@ def predict_image(request):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
+
+# Add this new view
+class UserProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        user = request.user
+        serializer = UserProfileSerializer(user)
+        return Response(serializer.data)
+    
+    def put(self, request):
+        user = request.user
+        serializer = UserProfileSerializer(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+
+
+@api_view(["GET"])
+def get_disease_info(request, disease_name):
+    try:
+        disease_info = DiseaseInfo.objects.get(disease_name=disease_name)
+        return JsonResponse({
+            "disease_name": disease_info.disease_name,
+            "description": disease_info.description,
+            "treatment": disease_info.treatment,
+            "prevention": disease_info.prevention
+        })
+    except DiseaseInfo.DoesNotExist:
+        return JsonResponse({"error": "Disease information not found"}, status=404)
