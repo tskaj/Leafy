@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
+import '../services/disease_service.dart';  // Add this import
 
 class AuthProvider with ChangeNotifier {
   String? _token;
@@ -11,10 +12,9 @@ class AuthProvider with ChangeNotifier {
   String? _userId;
   String? _username;
 
-  bool get isAuth {
-    return token != null;
-  }
-
+  // Add this getter
+  bool get isAuthenticated => token != null;
+  
   String? get token {
     if (_expiryDate != null &&
         _expiryDate!.isAfter(DateTime.now()) &&
@@ -75,12 +75,8 @@ class AuthProvider with ChangeNotifier {
 
   Future<bool> refreshAuthToken(String refreshToken) async {
     try {
-      // Support both web and mobile environments
-      final baseUrl = Uri.base.toString().contains('localhost') 
-          ? 'http://localhost:8000' 
-          : 'http://10.0.2.2:8000';
-      
-      final url = Uri.parse('$baseUrl/api/users/token/refresh/');
+      // Use the DiseaseService.getBaseUrl() method for consistency
+      final url = Uri.parse('${DiseaseService.getBaseUrl()}/token/refresh/');
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
@@ -102,12 +98,8 @@ class AuthProvider with ChangeNotifier {
 
   Future<Map<String, dynamic>> login(String username, String password) async {
     try {
-      // Support both web and mobile environments
-      final baseUrl = Uri.base.toString().contains('localhost') 
-          ? 'http://localhost:8000' 
-          : 'http://10.0.2.2:8000';
-      
-      final url = Uri.parse('$baseUrl/api/users/login/');
+      // Use the DiseaseService.getBaseUrl() method for consistency
+      final url = Uri.parse('${DiseaseService.getBaseUrl()}/login/');
       
       print('Attempting to login with URL: ${url.toString()}');
       
@@ -165,15 +157,10 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  Future<Map<String, dynamic>> signup(
-      String username, String email, String password) async {
+  Future<Map<String, dynamic>> signup(String username, String email, String password) async {
     try {
-      // Support both web and mobile environments
-      final baseUrl = Uri.base.toString().contains('localhost') 
-          ? 'http://localhost:8000' 
-          : 'http://10.0.2.2:8000';
-      
-      final url = Uri.parse('$baseUrl/api/users/register/');
+      // Use the DiseaseService.getBaseUrl() method for consistency
+      final url = Uri.parse('${DiseaseService.getBaseUrl()}/register/');
       
       print('Attempting to signup with URL: ${url.toString()}');
       

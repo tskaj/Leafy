@@ -3,9 +3,11 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
 import '../services/disease_service.dart';
 import 'login_screen.dart';
+import 'community_screen.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 class HomeScreen extends StatefulWidget {
@@ -16,7 +18,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  XFile? _selectedImage;  // Change from File? to XFile?
+  XFile? _selectedImage;
   bool _isLoading = false;
   Map<String, dynamic>? _detectionResult;
 
@@ -26,7 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (image != null) {
       setState(() {
-        _selectedImage = image;  // Store the XFile directly
+        _selectedImage = image;
         _detectionResult = null;
       });
     }
@@ -38,7 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (image != null) {
       setState(() {
-        _selectedImage = image;  // Store the XFile directly
+        _selectedImage = image;
         _detectionResult = null;
       });
     }
@@ -47,7 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _detectDisease() async {
     if (_selectedImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select an image first')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.pleaseSelectImage)),
       );
       return;
     }
@@ -60,50 +62,32 @@ class _HomeScreenState extends State<HomeScreen> {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final token = authProvider.token;
 
-      if (token == null) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Authentication error. Please login again')),
-        );
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (ctx) => const LoginScreen()),
-        );
-        return;
+      Map<String, dynamic> result;
+      
+      if (kIsWeb) {
+        // For web, we need to handle this differently
+        final bytes = await _selectedImage!.readAsBytes();
+        result = token != null 
+            ? await DiseaseService.detectDiseaseWeb(bytes, token)
+            : await DiseaseService.detectDiseaseAnonymous(bytes);
+      } else {
+        // For mobile platforms
+        final file = File(_selectedImage!.path);
+        result = token != null
+            ? await DiseaseService.detectDisease(file, token)
+            : await DiseaseService.detectDiseaseAnonymousMobile(file);
       }
 
-      // Convert XFile to File for non-web platforms, or handle web specially
-      if (kIsWeb) {
-        // For web, we need to handle the image differently
-        final bytes = await _selectedImage!.readAsBytes();
-        final result = await DiseaseService.detectDiseaseWeb(bytes, token);
-        
-        if (!mounted) return;
+      if (!mounted) return;
 
-        if (result['success']) {
-          setState(() {
-            _detectionResult = result['data'];
-          });
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result['message'])),
-          );
-        }
+      if (result['success']) {
+        setState(() {
+          _detectionResult = result['data'];
+        });
       } else {
-        // For mobile, convert XFile to File
-        final file = File(_selectedImage!.path);
-        final result = await DiseaseService.detectDisease(file, token);
-        
-        if (!mounted) return;
-
-        if (result['success']) {
-          setState(() {
-            _detectionResult = result['data'];
-          });
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result['message'])),
-          );
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message'])),
+        );
       }
     } catch (error) {
       if (!mounted) return;
@@ -137,16 +121,16 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Prediction: $prediction',
+              '${AppLocalizations.of(context)!.prediction}: $prediction',
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Probabilities:',
-              style: TextStyle(
+            Text(
+              AppLocalizations.of(context)!.probabilities,
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
@@ -193,9 +177,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (kIsWeb) {
       // For web, we need to use a different approach
-      // We can't use File operations directly in web
       return FutureBuilder<Uint8List>(
-        future: _selectedImage!.readAsBytes(), // Use the async method from XFile
+        future: _selectedImage!.readAsBytes(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.done && 
               snapshot.hasData) {
@@ -226,7 +209,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(8),
           child: Image.file(
-File(_selectedImage!.path),
+            File(_selectedImage!.path),
             height: 300,
             width: double.infinity,
             fit: BoxFit.cover,
@@ -239,23 +222,91 @@ File(_selectedImage!.path),
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
+    final isLoggedIn = authProvider.isAuthenticated;
     final username = authProvider.username;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Leafy - Plant Disease Detection'),
+        title: Text(AppLocalizations.of(context)!.appTitle),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await authProvider.logout();
-              if (!mounted) return;
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (ctx) => const LoginScreen()),
-              );
-            },
-          ),
+          if (isLoggedIn)
+            IconButton(
+              icon: const Icon(Icons.logout),
+              onPressed: () async {
+                await authProvider.logout();
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Logged out successfully')),
+                );
+              },
+            ),
         ],
+      ),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: BoxDecoration(
+                color: Colors.green,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const CircleAvatar(
+                    radius: 40,
+                    backgroundColor: Colors.white,
+                    child: Icon(Icons.eco, size: 40, color: Colors.green),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    isLoggedIn 
+                        ? 'Hello, $username!' 
+                        : AppLocalizations.of(context)!.welcomeMessage,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.home),
+              title: const Text('Home'),
+              onTap: () {
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.people),
+              title: Text(AppLocalizations.of(context)!.community),
+              onTap: () {
+                Navigator.pop(context);
+                if (isLoggedIn) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const CommunityScreen()),
+                  );
+                } else {
+                  _showLoginDialog(context);
+                }
+              },
+            ),
+            if (!isLoggedIn)
+              ListTile(
+                leading: const Icon(Icons.login),
+                title: Text(AppLocalizations.of(context)!.login),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  );
+                },
+              ),
+          ],
+        ),
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -264,49 +315,43 @@ File(_selectedImage!.path),
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Text(
-                'Welcome, $username!',
+                isLoggedIn 
+                    ? 'Welcome, $username!' 
+                    : AppLocalizations.of(context)!.welcomeMessage,
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Text(
-                'Upload a leaf image to detect plant diseases',
-                style: TextStyle(fontSize: 16),
+                AppLocalizations.of(context)!.uploadLeafImage,
+                style: const TextStyle(fontSize: 16),
               ),
             ),
             const SizedBox(height: 20),
             if (_selectedImage != null) _buildImageDisplay(),
-            // Remove this duplicate image display block that's causing the error
-            // Padding(
-            //   padding: const EdgeInsets.all(16.0),
-            //   child: ClipRRect(
-            //     borderRadius: BorderRadius.circular(8),
-            //     child: Image.file(
-            //       _selectedImage!,
-            //       height: 300,
-            //       width: double.infinity,
-            //       fit: BoxFit.cover,
-            //     ),
-            //   ),
-            // ),
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  ElevatedButton.icon(
-                    onPressed: _pickImage,
-                    icon: const Icon(Icons.photo_library),
-                    label: const Text('Gallery'),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _pickImage,
+                      icon: const Icon(Icons.photo_library),
+                      label: Text(AppLocalizations.of(context)!.selectImage),
+                    ),
                   ),
-                  ElevatedButton.icon(
-                    onPressed: _captureImage,
-                    icon: const Icon(Icons.camera_alt),
-                    label: const Text('Camera'),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _captureImage,
+                      icon: const Icon(Icons.camera_alt),
+                      label: Text(AppLocalizations.of(context)!.captureImage),
+                    ),
                   ),
                 ],
               ),
@@ -316,15 +361,15 @@ File(_selectedImage!.path),
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _detectDisease,
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
                   backgroundColor: Colors.green,
                   foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                        'DETECT DISEASE',
-                        style: TextStyle(fontSize: 16),
+                    : Text(
+                        AppLocalizations.of(context)!.detectDisease,
+                        style: const TextStyle(fontSize: 16),
                       ),
               ),
             ),
@@ -332,6 +377,36 @@ File(_selectedImage!.path),
             const SizedBox(height: 20),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showLoginDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(AppLocalizations.of(context)!.joinCommunity),
+        content: const Text(
+          'You need to be logged in to access the community features. Would you like to login or register now?'
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+            },
+            child: Text(AppLocalizations.of(context)!.cancel),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+              );
+            },
+            child: Text(AppLocalizations.of(context)!.login),
+          ),
+        ],
       ),
     );
   }

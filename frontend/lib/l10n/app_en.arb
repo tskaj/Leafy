@@ -1,0 +1,20 @@
+{
+  "appTitle": "Leafy",
+  "welcomeMessage": "Welcome to Leafy!",
+  "uploadLeafImage": "Upload a leaf image to detect plant diseases",
+  "selectImage": "Select Image",
+  "captureImage": "Capture Image",
+  "detectDisease": "Detect Disease",
+  "pleaseSelectImage": "Please select an image first",
+  "prediction": "Prediction",
+  "probabilities": "Probabilities",
+  "community": "Community",
+  "login": "Login",
+  "cancel": "Cancel",
+  "joinCommunity": "Join Community",
+  "createPost": "Create Post",
+  "addCaption": "Add a caption...",
+  "post": "Post",
+  "noPostsYet": "No posts yet. Be the first to share!",
+  "shareYourPlants": "Share Your Plants"
+}

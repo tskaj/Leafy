@@ -1,0 +1,20 @@
+{
+  "appTitle": "لیفی",
+  "welcomeMessage": "لیفی میں خوش آمدید",
+  "uploadLeafImage": "بیماریوں کا پتہ لگانے کے لیے پتے کی تصویر اپلوڈ کریں",
+  "selectImage": "تصویر منتخب کریں",
+  "captureImage": "تصویر لیں",
+  "detectDisease": "بیماری کا پتہ لگائیں",
+  "prediction": "پیش گوئی",
+  "probabilities": "امکانات",
+  "pleaseSelectImage": "براہ کرم پہلے تصویر منتخب کریں",
+  "login": "لاگ ان",
+  "cancel": "منسوخ کریں",
+  "community": "کمیونٹی",
+  "joinCommunity": "کمیونٹی میں شامل ہوں",
+  "createPost": "پوسٹ بنائیں",
+  "addCaption": "کیپشن شامل کریں...",
+  "post": "پوسٹ",
+  "noPostsYet": "ابھی تک کوئی پوسٹ نہیں۔ شیئر کرنے والے پہلے بنیں!",
+  "shareYourPlants": "اپنے پودے شیئر کریں"
+}
