@@ -15,6 +15,7 @@ from django.http import JsonResponse
 import os
 from io import BytesIO
 from PIL import Image
+from .models import DiseaseInfo  # Make sure this model exists in your models.py
 
 
 class RegisterView(APIView):

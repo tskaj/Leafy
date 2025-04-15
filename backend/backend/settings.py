@@ -19,6 +19,7 @@ ALLOWED_HOSTS = []
 
 # Application definition
 
+# Add these to your installed apps
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -40,8 +41,9 @@ REST_FRAMEWORK = {
 }
 
 
+# Add the middleware
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # This should be at the top
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -141,4 +143,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'users.CustomUser'
 
-CORS_ALLOW_ALL_ORIGINS = True
+# CORS settings
+CORS_ALLOW_ALL_ORIGINS = True  # For development only, restrict in production
+CORS_ALLOW_CREDENTIALS = True

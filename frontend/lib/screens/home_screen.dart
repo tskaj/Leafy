@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -15,7 +16,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  File? _selectedImage;
+  XFile? _selectedImage;  // Change from File? to XFile?
   bool _isLoading = false;
   Map<String, dynamic>? _detectionResult;
 
@@ -25,7 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (image != null) {
       setState(() {
-        _selectedImage = File(image.path);
+        _selectedImage = image;  // Store the XFile directly
         _detectionResult = null;
       });
     }
@@ -37,7 +38,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (image != null) {
       setState(() {
-        _selectedImage = File(image.path);
+        _selectedImage = image;  // Store the XFile directly
         _detectionResult = null;
       });
     }
@@ -70,18 +71,39 @@ class _HomeScreenState extends State<HomeScreen> {
         return;
       }
 
-      final result = await DiseaseService.detectDisease(_selectedImage!, token);
+      // Convert XFile to File for non-web platforms, or handle web specially
+      if (kIsWeb) {
+        // For web, we need to handle the image differently
+        final bytes = await _selectedImage!.readAsBytes();
+        final result = await DiseaseService.detectDiseaseWeb(bytes, token);
+        
+        if (!mounted) return;
 
-      if (!mounted) return;
-
-      if (result['success']) {
-        setState(() {
-          _detectionResult = result['data'];
-        });
+        if (result['success']) {
+          setState(() {
+            _detectionResult = result['data'];
+          });
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result['message'])),
+          );
+        }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['message'])),
-        );
+        // For mobile, convert XFile to File
+        final file = File(_selectedImage!.path);
+        final result = await DiseaseService.detectDisease(file, token);
+        
+        if (!mounted) return;
+
+        if (result['success']) {
+          setState(() {
+            _detectionResult = result['data'];
+          });
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result['message'])),
+          );
+        }
       }
     } catch (error) {
       if (!mounted) return;
@@ -170,18 +192,32 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     if (kIsWeb) {
-      // For web, use memory bytes
-      return Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Image.memory(
-            _selectedImage!.readAsBytesSync(),
-            height: 300,
-            width: double.infinity,
-            fit: BoxFit.cover,
-          ),
-        ),
+      // For web, we need to use a different approach
+      // We can't use File operations directly in web
+      return FutureBuilder<Uint8List>(
+        future: _selectedImage!.readAsBytes(), // Use the async method from XFile
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.done && 
+              snapshot.hasData) {
+            return Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.memory(
+                  snapshot.data!,
+                  height: 300,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            );
+          } else {
+            return const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+        },
       );
     } else {
       // For mobile platforms
@@ -190,7 +226,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(8),
           child: Image.file(
-            _selectedImage!,
+File(_selectedImage!.path),
             height: 300,
             width: double.infinity,
             fit: BoxFit.cover,
