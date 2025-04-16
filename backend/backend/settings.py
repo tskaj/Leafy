@@ -19,7 +19,6 @@ ALLOWED_HOSTS = []
 
 # Application definition
 
-# Add these to your installed apps
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -27,9 +26,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'users',  # Keep only one instance of 'users'
+    'leafy_disease',  # Renamed from 'plant_disease'
+    'leafy_community',  # Renamed from 'community'
     'rest_framework',
     'rest_framework_simplejwt',
-    'users',
     'corsheaders',
 ]
 

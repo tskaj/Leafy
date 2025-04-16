@@ -296,10 +296,11 @@ class _CommunityScreenState extends State<CommunityScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (ctx) => Padding(
+      builder: (ctx) => Container(
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(ctx).viewInsets.bottom,
         ),
+        height: MediaQuery.of(ctx).size.height * 0.7,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -311,19 +312,21 @@ class _CommunityScreenState extends State<CommunityScreen> {
               ),
             ),
             Expanded(
-              child: ListView.builder(
-                itemCount: post['comments'].length,
-                itemBuilder: (ctx, index) {
-                  final comment = post['comments'][index];
-                  return ListTile(
-                    leading: CircleAvatar(
-                      child: Text(comment['user'][0].toUpperCase()),
-                    ),
-                    title: Text(comment['user']),
-                    subtitle: Text(comment['text']),
-                  );
-                },
-              ),
+              child: post['comments'].isEmpty 
+                ? Center(child: Text('No comments yet'))
+                : ListView.builder(
+                    itemCount: post['comments'].length,
+                    itemBuilder: (ctx, index) {
+                      final comment = post['comments'][index];
+                      return ListTile(
+                        leading: CircleAvatar(
+                          child: Text(comment['user'][0].toUpperCase()),
+                        ),
+                        title: Text(comment['user']),
+                        subtitle: Text(comment['text']),
+                      );
+                    },
+                  ),
             ),
             Padding(
               padding: const EdgeInsets.all(8),

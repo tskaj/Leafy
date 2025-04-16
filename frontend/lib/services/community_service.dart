@@ -103,7 +103,6 @@ class CommunityService {
     }
   }
 
-  // Add the missing likePost method
   static Future<Map<String, dynamic>> likePost(int postId, String token) async {
     try {
       final url = Uri.parse('${DiseaseService.getBaseUrl()}/community/posts/$postId/like/');
@@ -117,8 +116,10 @@ class CommunityService {
       );
       
       if (response.statusCode == 200 || response.statusCode == 201) {
+        final responseData = json.decode(response.body);
         return {
           'success': true,
+          'data': responseData,
         };
       } else {
         final responseData = json.decode(response.body);
