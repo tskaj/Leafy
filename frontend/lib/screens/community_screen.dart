@@ -2,9 +2,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../providers/auth_provider.dart';
 import '../services/community_service.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import '../utils/web_image_picker.dart';
 
 class CommunityScreen extends StatefulWidget {
   const CommunityScreen({super.key});
@@ -63,40 +64,52 @@ class _CommunityScreenState extends State<CommunityScreen> {
     });
   }
 
+  // Replace your _createPost method with this:
   Future<void> _createPost() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-
-    if (image == null) return;
-
+    final imageData = await WebImagePicker.pickImage();
+    
+    if (imageData == null) return;
+    
     final TextEditingController captionController = TextEditingController();
-
+    
     if (!mounted) return;
-
+    
     // Show dialog to add caption
     final bool? shouldPost = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Create Post'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.file(
-              File(image.path),
-              height: 200,
-              width: double.infinity,
-              fit: BoxFit.cover,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: captionController,
-              decoration: InputDecoration(
-                hintText: 'Add a caption...',
-                border: const OutlineInputBorder(),
+        content: SingleChildScrollView( // Wrap with SingleChildScrollView
+          child: Column(
+            mainAxisSize: MainAxisSize.min, // Keep this
+            children: [
+              // Fix the image display with constrained dimensions
+              Container(
+                constraints: BoxConstraints(
+                  maxHeight: 200,
+                  maxWidth: MediaQuery.of(context).size.width * 0.6,
+                ),
+                child: kIsWeb
+                    ? Image.memory(
+                        imageData['bytes'],
+                        fit: BoxFit.contain, // Use contain instead of cover
+                      )
+                    : Image.file(
+                        File(imageData['path']),
+                        fit: BoxFit.contain, // Use contain instead of cover
+                      ),
               ),
-              maxLines: 3,
-            ),
-          ],
+              const SizedBox(height: 16),
+              TextField(
+                controller: captionController,
+                decoration: const InputDecoration(
+                  hintText: 'Add a caption...',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -105,36 +118,36 @@ class _CommunityScreenState extends State<CommunityScreen> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(AppLocalizations.of(context)!.post),
+            child: const Text('Post'),
           ),
         ],
       ),
     );
-
+  
     if (shouldPost != true) return;
-
+  
     setState(() {
       _isLoading = true;
     });
-
+  
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final token = authProvider.token;
-
+  
       if (token == null) {
         if (!mounted) return;
         Navigator.of(context).pop();
         return;
       }
-
+  
       final result = await CommunityService.createPost(
-        captionController.text,  // First parameter should be the caption (String)
-        File(image.path),        // Second parameter should be the image (File)
-        token,                   // Third parameter is the token
+        captionController.text,
+        imageData,
+        token,
       );
-
+  
       if (!mounted) return;
-
+  
       if (result['success']) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Post created successfully')),
@@ -151,7 +164,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
         SnackBar(content: Text('Error: ${error.toString()}')),
       );
     }
-
+  
     setState(() {
       _isLoading = false;
     });
@@ -161,7 +174,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.community),
+        title: const Text('Community'), // Replace AppLocalizations with hardcoded text
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -172,16 +185,16 @@ class _CommunityScreenState extends State<CommunityScreen> {
                     children: [
                       const Icon(Icons.nature_people, size: 80, color: Colors.grey),
                       const SizedBox(height: 16),
-                      Text(
-                        AppLocalizations.of(context)!.noPostsYet,
-                        style: const TextStyle(fontSize: 18, color: Colors.grey),
+                      const Text(
+                        'No posts yet', // Replace AppLocalizations with hardcoded text
+                        style: TextStyle(fontSize: 18, color: Colors.grey),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 24),
                       ElevatedButton.icon(
                         onPressed: _createPost,
                         icon: const Icon(Icons.add_photo_alternate),
-                        label: Text(AppLocalizations.of(context)!.shareYourPlants),
+                        label: const Text('Share Your Plants'), // Replace AppLocalizations with hardcoded text
                       ),
                     ],
                   ),

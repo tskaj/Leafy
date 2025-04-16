@@ -3,37 +3,62 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
+from django.utils import timezone
+import datetime
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def post_list_create(request):
     if request.method == 'GET':
-        # Placeholder for getting all posts
-        return JsonResponse([
+        # Return dummy posts for now
+        current_time = timezone.now().isoformat()
+        dummy_posts = [
             {
                 'id': 1,
-                'user': 'testuser',
-                'caption': 'My first plant post',
-                'image': '/media/posts/placeholder.jpg',
-                'created_at': '2023-06-01T12:00:00Z',
-                'like_count': 5,
+                'user': request.user.username,
+                'caption': 'My beautiful plant collection',
+                'image': '/media/posts/plant1.jpg',
+                'created_at': current_time,
+                'like_count': 12,
+                'is_liked': True,
+                'comments': [
+                    {
+                        'id': 1,
+                        'user': 'plant_lover',
+                        'text': 'Amazing collection!',
+                        'created_at': current_time
+                    }
+                ]
+            },
+            {
+                'id': 2,
+                'user': 'garden_enthusiast',
+                'caption': 'Spring flowers in my garden',
+                'image': '/media/posts/garden.jpg',
+                'created_at': current_time,
+                'like_count': 8,
                 'is_liked': False,
                 'comments': []
             }
-        ], safe=False)
+        ]
+        return JsonResponse({'success': True, 'data': dummy_posts}, safe=False)
     elif request.method == 'POST':
         # Placeholder for creating a post
         return JsonResponse({
-            'id': 2,
-            'user': request.user.username,
-            'caption': request.data.get('caption', ''),
-            'image': '/media/posts/new_placeholder.jpg',
-            'created_at': '2023-06-02T12:00:00Z',
-            'like_count': 0,
-            'is_liked': False,
-            'comments': []
+            'success': True,
+            'data': {
+                'id': 3,
+                'user': request.user.username,
+                'caption': request.data.get('caption', ''),
+                'image': '/media/posts/new_placeholder.jpg',
+                'created_at': timezone.now().isoformat(),
+                'like_count': 0,
+                'is_liked': False,
+                'comments': []
+            }
         }, status=201)
 
+# Keep the rest of your functions as they are
 @api_view(['GET', 'PUT', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def post_detail(request, pk):

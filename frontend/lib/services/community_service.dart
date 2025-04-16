@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';  // Add this import for MediaType
 import 'disease_service.dart';
 
 class CommunityService {
@@ -39,60 +40,60 @@ class CommunityService {
     }
   }
 
-  // Fix parameter order to match how it's called in community_screen.dart
-  static Future<Map<String, dynamic>> createPost(String caption, dynamic image, String token) async {
+  static Future<Map<String, dynamic>> createPost(
+    String caption,
+    Map<String, dynamic> imageData,
+    String token,
+  ) async {
     try {
-      final request = http.MultipartRequest(
-        'POST',
-        Uri.parse('${DiseaseService.getBaseUrl()}/community/posts/'),
-      );
+      final url = Uri.parse('${DiseaseService.getBaseUrl()}/community/posts/');
       
+      // Create a multipart request
+      var request = http.MultipartRequest('POST', url);
+      
+      // Add authorization header
       request.headers['Authorization'] = 'Bearer $token';
+      
+      // Add text fields
       request.fields['caption'] = caption;
       
-      // Handle different image types (File for mobile, Uint8List for web)
-      if (image != null) {
-        if (kIsWeb && image is Uint8List) {
-          request.files.add(
-            http.MultipartFile.fromBytes(
-              'image',
-              image,
-              filename: 'post_image.jpg',
-            ),
-          );
-        } else if (!kIsWeb && image is File) {
-          request.files.add(
-            await http.MultipartFile.fromPath(
-              'image',
-              image.path,
-              filename: 'post_image.jpg',
-            ),
-          );
-        } else if (image is String) {
-          // Handle case where image is a path string
-          request.files.add(
-            await http.MultipartFile.fromPath(
-              'image',
-              image,
-              filename: 'post_image.jpg',
-            ),
-          );
-        }
+      // Add the image file
+      if (kIsWeb) {
+        // For web
+        final bytes = imageData['bytes'] as Uint8List;
+        final fileName = imageData['name'] as String;
+        
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'image',
+            bytes,
+            filename: fileName,
+            contentType: MediaType.parse(imageData['mimeType']),
+          ),
+        );
+      } else {
+        // For mobile
+        final file = File(imageData['path']);
+        request.files.add(
+          await http.MultipartFile.fromPath('image', file.path),
+        );
       }
       
-      final response = await request.send();
-      final responseData = await response.stream.bytesToString();
-      final data = json.decode(responseData);
+      // Send the request
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
       
       if (response.statusCode == 201) {
+        final responseData = json.decode(response.body);
         return {
           'success': true,
-          'data': data,
+          'data': responseData['data'],
         };
       } else {
+        final responseData = json.decode(response.body);
         return {
           'success': false,
-          'message': data['detail'] ?? 'Failed to create post',
+          'message': responseData['detail'] ?? 'Failed to create post',
         };
       }
     } catch (e) {
