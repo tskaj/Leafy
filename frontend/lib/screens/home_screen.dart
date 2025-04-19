@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
+import '../providers/language_provider.dart';
 import '../services/disease_service.dart';
 import 'login_screen.dart';
 import 'community_screen.dart';
@@ -293,17 +294,28 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // In the build method of your HomeScreen class, update the AppBar:
+  
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
+    final languageProvider = Provider.of<LanguageProvider>(context);
     final isLoggedIn = authProvider.isAuthenticated;
     final username = authProvider.username;
     final localizations = AppLocalizations.of(context);
-
+  
     return Scaffold(
       appBar: AppBar(
         title: Text(localizations?.appTitle ?? 'Leafy'),
         actions: [
+          // Language selection button
+          IconButton(
+            icon: const Icon(Icons.language),
+            tooltip: 'Change Language',
+            onPressed: () {
+              _showLanguageDialog(context, languageProvider);
+            },
+          ),
           if (isLoggedIn)
             IconButton(
               icon: const Icon(Icons.logout),
@@ -311,7 +323,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 await authProvider.logout();
                 if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  // Replace with a hardcoded string since the key doesn't exist
                   const SnackBar(content: Text('Logged out successfully')),
                 );
               },
@@ -455,6 +466,54 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 20),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showLanguageDialog(BuildContext context, LanguageProvider languageProvider) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(AppLocalizations.of(context)?.appTitle ?? 'Select Language'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: const Text('English'),
+              leading: Radio<Locale>(
+                value: const Locale('en'),
+                groupValue: languageProvider.locale,
+                onChanged: (Locale? value) {
+                  if (value != null) {
+                    languageProvider.setLocale(value);
+                    Navigator.of(ctx).pop();
+                  }
+                },
+              ),
+            ),
+            ListTile(
+              title: const Text('اردو'),
+              leading: Radio<Locale>(
+                value: const Locale('ur'),
+                groupValue: languageProvider.locale,
+                onChanged: (Locale? value) {
+                  if (value != null) {
+                    languageProvider.setLocale(value);
+                    Navigator.of(ctx).pop();
+                  }
+                },
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+            },
+            child: Text(AppLocalizations.of(context)?.cancel ?? 'Cancel'),
+          ),
+        ],
       ),
     );
   }
