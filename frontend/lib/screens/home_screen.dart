@@ -47,9 +47,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _detectDisease() async {
+    final localizations = AppLocalizations.of(context);
     if (_selectedImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.pleaseSelectImage)),
+        SnackBar(content: Text(localizations?.pleaseSelectImage ?? 'Please select an image')),
       );
       return;
     }
@@ -69,7 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
         final bytes = await _selectedImage!.readAsBytes();
         result = token != null 
             ? await DiseaseService.detectDiseaseWeb(bytes, token)
-            : await DiseaseService.detectDiseaseAnonymous(bytes);
+            : await DiseaseService.detectDiseaseAnonymousWeb(bytes);
       } else {
         // For mobile platforms
         final file = File(_selectedImage!.path);
@@ -102,13 +103,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildDetectionResult() {
-    if (_detectionResult == null) {
+    final localizations = AppLocalizations.of(context);
+    if (_detectionResult == null ||
+        _detectionResult!['prediction'] == null ||
+        _detectionResult!['probabilities'] == null) {
       return const SizedBox();
     }
 
     final prediction = _detectionResult!['prediction'] as String;
     final probabilities = _detectionResult!['probabilities'] as Map<String, dynamic>;
-    
+
     // Sort probabilities by value in descending order
     final sortedProbabilities = probabilities.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
@@ -121,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '${AppLocalizations.of(context)!.prediction}: $prediction',
+              '${localizations?.prediction ?? "Prediction"}: $prediction',
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -129,7 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              AppLocalizations.of(context)!.probabilities,
+              localizations?.probabilities ?? "Probabilities",
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -163,7 +167,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               );
-            }).toList(),
+            }),
           ],
         ),
       ),
@@ -224,10 +228,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final authProvider = Provider.of<AuthProvider>(context);
     final isLoggedIn = authProvider.isAuthenticated;
     final username = authProvider.username;
+    final localizations = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.appTitle),
+        title: Text(localizations?.appTitle ?? 'Leafy'),
         actions: [
           if (isLoggedIn)
             IconButton(
@@ -236,6 +241,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 await authProvider.logout();
                 if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
+                  // Replace with a hardcoded string since the key doesn't exist
                   const SnackBar(content: Text('Logged out successfully')),
                 );
               },
@@ -247,7 +253,7 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: EdgeInsets.zero,
           children: [
             DrawerHeader(
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: Colors.green,
               ),
               child: Column(
@@ -261,8 +267,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 10),
                   Text(
                     isLoggedIn 
-                        ? 'Hello, $username!' 
-                        : AppLocalizations.of(context)!.welcomeMessage,
+                        ? 'Hello, ${username ?? ""}!' 
+                        : (localizations?.welcomeMessage ?? 'Welcome to Leafy!'),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -280,7 +286,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.people),
-              title: Text(AppLocalizations.of(context)!.community),
+              title: Text(localizations?.community ?? 'Community'),
               onTap: () {
                 Navigator.pop(context);
                 if (isLoggedIn) {
@@ -296,7 +302,7 @@ class _HomeScreenState extends State<HomeScreen> {
             if (!isLoggedIn)
               ListTile(
                 leading: const Icon(Icons.login),
-                title: Text(AppLocalizations.of(context)!.login),
+                title: Text(localizations?.login ?? 'Login'),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.push(
@@ -316,8 +322,8 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.all(16.0),
               child: Text(
                 isLoggedIn 
-                    ? 'Welcome, $username!' 
-                    : AppLocalizations.of(context)!.welcomeMessage,
+                    ? 'Welcome, ${username ?? ""}!' 
+                    : (localizations?.welcomeMessage ?? 'Welcome to Leafy!'),
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -327,7 +333,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Text(
-                AppLocalizations.of(context)!.uploadLeafImage,
+                localizations?.uploadLeafImage ?? 'Upload a leaf image',
                 style: const TextStyle(fontSize: 16),
               ),
             ),
@@ -342,7 +348,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: ElevatedButton.icon(
                       onPressed: _pickImage,
                       icon: const Icon(Icons.photo_library),
-                      label: Text(AppLocalizations.of(context)!.selectImage),
+                      label: Text(localizations?.selectImage ?? 'Select Image'),
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -350,7 +356,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: ElevatedButton.icon(
                       onPressed: _captureImage,
                       icon: const Icon(Icons.camera_alt),
-                      label: Text(AppLocalizations.of(context)!.captureImage),
+                      label: Text(localizations?.captureImage ?? 'Capture Image'),
                     ),
                   ),
                 ],
@@ -368,7 +374,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
                     : Text(
-                        AppLocalizations.of(context)!.detectDisease,
+                        localizations?.detectDisease ?? 'Detect Disease',
                         style: const TextStyle(fontSize: 16),
                       ),
               ),
@@ -382,19 +388,21 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showLoginDialog(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(AppLocalizations.of(context)!.joinCommunity),
+        title: Text(localizations?.joinCommunity ?? 'Join Community'),
         content: const Text(
-          'You need to be logged in to access the community features. Would you like to login or register now?'
+          // Replace with a hardcoded string since the key doesn't exist
+          'You need to be logged in to access the community features. Would you like to login or register now?',
         ),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.of(ctx).pop();
             },
-            child: Text(AppLocalizations.of(context)!.cancel),
+            child: Text(localizations?.cancel ?? 'Cancel'),
           ),
           TextButton(
             onPressed: () {
@@ -404,7 +412,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 MaterialPageRoute(builder: (context) => const LoginScreen()),
               );
             },
-            child: Text(AppLocalizations.of(context)!.login),
+            child: Text(localizations?.login ?? 'Login'),
           ),
         ],
       ),

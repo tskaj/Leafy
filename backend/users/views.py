@@ -5,8 +5,7 @@ from rest_framework import status
 from .serializers import RegisterSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import CustomTokenObtainPairSerializer
-
-from rest_framework.parsers import MultiPartParser
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.decorators import api_view, permission_classes
 from tensorflow.keras.preprocessing.image import load_img, img_to_array
 from tensorflow.keras.models import load_model
@@ -200,67 +199,65 @@ def get_disease_info(request, disease_name):
 
 # Add these views to your existing views.py file
 
+# Fix the CommunityPostListCreateView class
 class CommunityPostListCreateView(APIView):
     permission_classes = [IsAuthenticated]
-    parser_classes = [MultiPartParser]
+    parser_classes = [MultiPartParser, FormParser]
     
     def get(self, request):
-        # Return dummy data instead of trying to access a non-existent model
-        dummy_posts = [
-            {
-                'id': 1,
-                'user': request.user.username,
-                'caption': 'My beautiful plant collection',
-                'image': '/media/posts/plant1.jpg',
-                'created_at': timezone.now().isoformat(),
-                'like_count': 12,
-                'is_liked': True,
-                'comments': [
-                    {
-                        'id': 1,
-                        'user': 'plant_lover',
-                        'text': 'Amazing collection!',
-                        'created_at': timezone.now().isoformat()
-                    }
-                ]
-            },
-            {
-                'id': 2,
-                'user': 'garden_enthusiast',
-                'caption': 'Spring flowers in my garden',
-                'image': '/media/posts/garden.jpg',
-                'created_at': timezone.now().isoformat(),
-                'like_count': 8,
-                'is_liked': False,
-                'comments': []
-            }
-        ]
-        return Response({'success': True, 'data': dummy_posts})
+        # Instead of returning dummy data, return an empty list
+        # Later you can replace this with actual database queries
+        posts = []
+        
+        # Get all posts from the database in reverse chronological order
+        # Uncomment this when you have a CommunityPost model
+        # posts = CommunityPost.objects.all().order_by('-created_at')
+        # serializer = CommunityPostSerializer(posts, many=True, context={'request': request})
+        # return Response(serializer.data)
+        
+        # For now, just return an empty list that will be populated with user posts
+        return Response(posts)
     
     def post(self, request):
-        # For now, just return a success response with dummy data
-        return Response({
-            'success': True,
-            'data': {
-                'id': 3,
+        try:
+            # Get data from request
+            caption = request.data.get('caption', '')
+            image = request.data.get('image')
+            
+            # Create a directory for posts if it doesn't exist
+            import os
+            from django.conf import settings
+            posts_dir = os.path.join(settings.MEDIA_ROOT, 'posts')
+            os.makedirs(posts_dir, exist_ok=True)
+            
+            # Save the image to the posts directory
+            from django.core.files.storage import default_storage
+            from django.core.files.base import ContentFile
+            import time
+            
+            # Generate a unique filename
+            filename = f"post_{request.user.id}_{int(time.time())}.jpg"
+            path = default_storage.save(f'posts/{filename}', ContentFile(image.read()))
+            
+            # Create a new post object
+            new_post = {
+                'id': int(time.time()),  # Generate a unique ID based on timestamp
                 'user': request.user.username,
-                'caption': request.data.get('caption', ''),
-                'image': '/media/posts/new_placeholder.jpg',
+                'caption': caption,
+                'image': f'/media/{path}',  # Use the actual saved path
                 'created_at': timezone.now().isoformat(),
                 'like_count': 0,
                 'is_liked': False,
                 'comments': []
             }
-        }, status=status.HTTP_201_CREATED)
-        serializer = CommunityPostSerializer(posts, many=True, context={'request': request})
-        return Response(serializer.data)
-    
-    def post(self, request):
-        serializer = CommunityPostSerializer(data=request.data, context={'request': request})
-        if serializer.is_valid():
-            serializer.save(user=request.user)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+            return Response(new_post, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            # Return a proper JSON error response
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 class CommunityPostDetailView(APIView):
     permission_classes = [IsAuthenticated]

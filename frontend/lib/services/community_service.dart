@@ -83,20 +83,41 @@ class CommunityService {
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
       
-      if (response.statusCode == 201) {
-        final responseData = json.decode(response.body);
-        return {
-          'success': true,
-          'data': responseData['data'],
-        };
-      } else {
-        final responseData = json.decode(response.body);
+      // Debug information
+      print('Create post response status: ${response.statusCode}');
+      print('Create post response body: ${response.body}');
+      
+      // Check if response is valid JSON
+      if (response.body.trim().startsWith('<')) {
+        // HTML response - error
         return {
           'success': false,
-          'message': responseData['detail'] ?? 'Failed to create post',
+          'message': 'Server returned HTML instead of JSON. Please check server logs.',
+        };
+      }
+      
+      try {
+        final responseData = json.decode(response.body);
+        
+        if (response.statusCode == 201) {
+          return {
+            'success': true,
+            'data': responseData,
+          };
+        } else {
+          return {
+            'success': false,
+            'message': responseData['detail'] ?? responseData['error'] ?? 'Failed to create post',
+          };
+        }
+      } catch (jsonError) {
+        return {
+          'success': false,
+          'message': 'Invalid response format: ${jsonError.toString()}',
         };
       }
     } catch (e) {
+      print('Error creating post: ${e.toString()}');
       return {
         'success': false,
         'message': 'Error: ${e.toString()}',
@@ -173,4 +194,8 @@ class CommunityService {
       };
     }
   }
+
+  static String getBaseUrl() {
+      return 'http://localhost:8000';
+    }
 }

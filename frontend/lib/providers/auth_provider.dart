@@ -52,7 +52,7 @@ class AuthProvider with ChangeNotifier {
 
     if (expiryDate.isBefore(DateTime.now())) {
       // Try to refresh token
-      final refreshSuccess = await _refreshToken != null 
+      final refreshSuccess = _refreshToken != null 
           ? await refreshAuthToken(extractedUserData['refreshToken'])
           : false;
       if (!refreshSuccess) {

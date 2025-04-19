@@ -1,4 +1,4 @@
-static Future<Map<String, dynamic>> login(String email, String password) async {
+Future<Map<String, dynamic>> login(String email, String password) async {
   try {
     final response = await http.post(
       Uri.parse('${DiseaseService.getBaseUrl()}/login/'),

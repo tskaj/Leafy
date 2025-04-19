@@ -8,20 +8,70 @@ import '../services/community_service.dart';
 import '../utils/web_image_picker.dart';
 
 class CommunityScreen extends StatefulWidget {
-  const CommunityScreen({super.key});
+  const CommunityScreen({Key? key}) : super(key: key);
 
   @override
-  State<CommunityScreen> createState() => _CommunityScreenState();
+  _CommunityScreenState createState() => _CommunityScreenState();
 }
 
 class _CommunityScreenState extends State<CommunityScreen> {
-  bool _isLoading = false;
   List<dynamic> _posts = [];
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
+    _checkAuthAndLoadPosts();
+  }
+
+  Future<void> _checkAuthAndLoadPosts() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    
+    // Check if user is authenticated
+    if (!authProvider.isAuthenticated) {
+      // If not authenticated, show login dialog
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showLoginDialog();
+      });
+      return;
+    }
+    
+    // If authenticated, load posts
     _loadPosts();
+  }
+
+  void _showLoginDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Login Required'),
+        content: const Text('You need to login to access the community features.'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).pushReplacementNamed('/login');
+            },
+            child: const Text('Login'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).pushReplacementNamed('/register');
+            },
+            child: const Text('Register'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).pushReplacementNamed('/home');
+            },
+            child: const Text('Back to Home'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _loadPosts() async {
@@ -105,7 +155,6 @@ class _CommunityScreenState extends State<CommunityScreen> {
     });
   }
 
-  // Replace your _createPost method with this:
   Future<void> _createPost() async {
     final imageData = await WebImagePicker.pickImage();
     
@@ -193,7 +242,17 @@ class _CommunityScreenState extends State<CommunityScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Post created successfully')),
         );
-        _loadPosts(); // Reload posts
+        
+        // Add the new post to the posts list
+        if (result['data'] != null) {
+          setState(() {
+            // Add the new post at the beginning of the list
+            _posts.insert(0, result['data']);
+          });
+        } else {
+          // If for some reason the data is not returned, reload all posts
+          await _loadPosts();
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(result['message'])),
@@ -257,59 +316,84 @@ class _CommunityScreenState extends State<CommunityScreen> {
     );
   }
 
+  // Update the _buildPostCard method to better handle image display
+  
   Widget _buildPostCard(dynamic post) {
-    return Card(
-      margin: const EdgeInsets.all(8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ListTile(
-            leading: CircleAvatar(
-              child: Text(post['user'][0].toUpperCase()),
-            ),
-            title: Text(post['user']),
-            subtitle: Text(
-              DateTime.parse(post['created_at']).toLocal().toString().split('.')[0],
-            ),
+  // Get the full image URL
+  String imageUrl = '';
+  if (post['image'] != null) {
+    if (post['image'].toString().startsWith('http')) {
+      imageUrl = post['image'].toString();
+    } else {
+      // For relative URLs, construct the full URL
+      imageUrl = '${CommunityService.getBaseUrl()}${post['image']}';
+    }
+  }
+  
+  return Card(
+    margin: const EdgeInsets.all(8),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ListTile(
+          leading: CircleAvatar(
+            child: Text(post['user'].toString()[0].toUpperCase()),
           ),
-          Image.network(
-            post['image'],
+          title: Text(post['user'].toString()),
+          subtitle: Text(
+            DateTime.tryParse(post['created_at'].toString()) != null
+                ? DateTime.parse(post['created_at'].toString()).toString().substring(0, 16)
+                : post['created_at'].toString(),
+          ),
+        ),
+        if (post['caption'] != null && post['caption'].toString().isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Text(post['caption'].toString()),
+          ),
+        // Display the image with better error handling
+        if (imageUrl.isNotEmpty)
+          Container(
             height: 300,
             width: double.infinity,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) => const Center(
-              child: Icon(Icons.error, size: 50),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(post['caption']),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                IconButton(
-                  icon: Icon(
-                    post['is_liked'] ? Icons.favorite : Icons.favorite_border,
-                    color: post['is_liked'] ? Colors.red : null,
+            child: Image.network(
+              imageUrl,
+              fit: BoxFit.cover,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Center(
+                  child: CircularProgressIndicator(
+                    value: loadingProgress.expectedTotalBytes != null
+                        ? loadingProgress.cumulativeBytesLoaded / 
+                          loadingProgress.expectedTotalBytes!
+                        : null,
                   ),
-                  onPressed: () => _likePost(post['id']),
-                ),
-                Text('${post['like_count']}'),
-                const SizedBox(width: 16),
-                IconButton(
-                  icon: const Icon(Icons.comment),
-                  onPressed: () => _showComments(post),
-                ),
-                Text('${post['comments'].length}'),
-              ],
+                );
+              },
+              errorBuilder: (context, error, stackTrace) {
+                print('Error loading image: $error');
+                return Container(
+                  color: Colors.grey[300],
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.broken_image, size: 50),
+                        SizedBox(height: 8),
+                        Text('Image not available'),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
           ),
-        ],
-      ),
-    );
-  }
+        
+        // Rest of your card implementation...
+      ],
+    ),
+  );
+}
 
   Future<void> _likePost(int postId) async {
     try {
@@ -367,7 +451,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
             ),
             Expanded(
               child: post['comments'].isEmpty 
-                ? Center(child: Text('No comments yet'))
+                ? const Center(child: Text('No comments yet'))
                 : ListView.builder(
                     itemCount: post['comments'].length,
                     itemBuilder: (ctx, index) {
