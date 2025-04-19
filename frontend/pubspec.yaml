@@ -28,16 +28,20 @@ dependencies:
   # Authentication and storage
   jwt_decoder: ^2.0.1
   shared_preferences: ^2.2.2
-  provider: ^6.1.2
+  provider: ^6.1.4
   intl: ^0.19.0
+  flutter_dotenv: ^5.2.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
 
+# In the flutter section, make sure you have:
 flutter:
-  uses-material-design: true  # Add this line
+  uses-material-design: true
   assets:
+    - .env
+    # Keep any other assets you have
     - assets/images/
   generate: true # Enable code generation

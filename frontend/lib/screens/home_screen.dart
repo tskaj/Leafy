@@ -21,6 +21,37 @@ class _HomeScreenState extends State<HomeScreen> {
   XFile? _selectedImage;
   bool _isLoading = false;
   Map<String, dynamic>? _detectionResult;
+  String _selectedCrop = 'tomato';
+  List<String> _availableCrops = ['tomato'];
+  bool _loadingCrops = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAvailableCrops();
+  }
+
+  Future<void> _loadAvailableCrops() async {
+    setState(() {
+      _loadingCrops = true;
+    });
+
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final token = authProvider.token;
+      
+      final crops = await DiseaseService.getAvailableCrops(token);
+      
+      setState(() {
+        _availableCrops = crops;
+        _loadingCrops = false;
+      });
+    } catch (e) {
+      setState(() {
+        _loadingCrops = false;
+      });
+    }
+  }
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
@@ -69,14 +100,14 @@ class _HomeScreenState extends State<HomeScreen> {
         // For web, we need to handle this differently
         final bytes = await _selectedImage!.readAsBytes();
         result = token != null 
-            ? await DiseaseService.detectDiseaseWeb(bytes, token)
-            : await DiseaseService.detectDiseaseAnonymousWeb(bytes);
+            ? await DiseaseService.detectDiseaseWeb(bytes, token, cropType: _selectedCrop)
+            : await DiseaseService.detectDiseaseAnonymousWeb(bytes, cropType: _selectedCrop);
       } else {
         // For mobile platforms
         final file = File(_selectedImage!.path);
         result = token != null
-            ? await DiseaseService.detectDisease(file, token)
-            : await DiseaseService.detectDiseaseAnonymousMobile(file);
+            ? await DiseaseService.detectDisease(file, token, cropType: _selectedCrop)
+            : await DiseaseService.detectDiseaseAnonymousMobile(file, cropType: _selectedCrop);
       }
 
       if (!mounted) return;
@@ -100,6 +131,45 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _isLoading = false;
     });
+  }
+
+  Widget _buildCropSelector() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Select Crop Type:',
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          _loadingCrops
+              ? const Center(child: CircularProgressIndicator())
+              : DropdownButtonFormField<String>(
+                  value: _selectedCrop,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  ),
+                  items: _availableCrops.map((String crop) {
+                    return DropdownMenuItem<String>(
+                      value: crop,
+                      child: Text(crop.capitalize()),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    if (newValue != null) {
+                      setState(() {
+                        _selectedCrop = newValue;
+                        _detectionResult = null;
+                      });
+                    }
+                  },
+                ),
+        ],
+      ),
+    );
   }
 
   Widget _buildDetectionResult() {
@@ -338,6 +408,8 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(height: 20),
+            _buildCropSelector(),
+            const SizedBox(height: 20),
             if (_selectedImage != null) _buildImageDisplay(),
             Padding(
               padding: const EdgeInsets.all(16.0),
@@ -417,5 +489,12 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+  }
+}
+
+// Add this extension method for string capitalization
+extension StringExtension on String {
+  String capitalize() {
+    return "${this[0].toUpperCase()}${this.substring(1)}";
   }
 }
