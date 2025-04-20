@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
+import '../providers/language_provider.dart';
 import '../services/disease_service.dart';
 import 'login_screen.dart';
 import 'community_screen.dart';
@@ -21,6 +22,37 @@ class _HomeScreenState extends State<HomeScreen> {
   XFile? _selectedImage;
   bool _isLoading = false;
   Map<String, dynamic>? _detectionResult;
+  String _selectedCrop = 'tomato';
+  List<String> _availableCrops = ['tomato'];
+  bool _loadingCrops = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAvailableCrops();
+  }
+
+  Future<void> _loadAvailableCrops() async {
+    setState(() {
+      _loadingCrops = true;
+    });
+
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final token = authProvider.token;
+      
+      final crops = await DiseaseService.getAvailableCrops(token);
+      
+      setState(() {
+        _availableCrops = crops;
+        _loadingCrops = false;
+      });
+    } catch (e) {
+      setState(() {
+        _loadingCrops = false;
+      });
+    }
+  }
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
@@ -69,14 +101,14 @@ class _HomeScreenState extends State<HomeScreen> {
         // For web, we need to handle this differently
         final bytes = await _selectedImage!.readAsBytes();
         result = token != null 
-            ? await DiseaseService.detectDiseaseWeb(bytes, token)
-            : await DiseaseService.detectDiseaseAnonymousWeb(bytes);
+            ? await DiseaseService.detectDiseaseWeb(bytes, token, cropType: _selectedCrop)
+            : await DiseaseService.detectDiseaseAnonymousWeb(bytes, cropType: _selectedCrop);
       } else {
         // For mobile platforms
         final file = File(_selectedImage!.path);
         result = token != null
-            ? await DiseaseService.detectDisease(file, token)
-            : await DiseaseService.detectDiseaseAnonymousMobile(file);
+            ? await DiseaseService.detectDisease(file, token, cropType: _selectedCrop)
+            : await DiseaseService.detectDiseaseAnonymousMobile(file, cropType: _selectedCrop);
       }
 
       if (!mounted) return;
@@ -100,6 +132,45 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _isLoading = false;
     });
+  }
+
+  Widget _buildCropSelector() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Select Crop Type:',
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          _loadingCrops
+              ? const Center(child: CircularProgressIndicator())
+              : DropdownButtonFormField<String>(
+                  value: _selectedCrop,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  ),
+                  items: _availableCrops.map((String crop) {
+                    return DropdownMenuItem<String>(
+                      value: crop,
+                      child: Text(crop.capitalize()),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    if (newValue != null) {
+                      setState(() {
+                        _selectedCrop = newValue;
+                        _detectionResult = null;
+                      });
+                    }
+                  },
+                ),
+        ],
+      ),
+    );
   }
 
   Widget _buildDetectionResult() {
@@ -223,17 +294,28 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // In the build method of your HomeScreen class, update the AppBar:
+  
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
+    final languageProvider = Provider.of<LanguageProvider>(context);
     final isLoggedIn = authProvider.isAuthenticated;
     final username = authProvider.username;
     final localizations = AppLocalizations.of(context);
-
+  
     return Scaffold(
       appBar: AppBar(
         title: Text(localizations?.appTitle ?? 'Leafy'),
         actions: [
+          // Language selection button
+          IconButton(
+            icon: const Icon(Icons.language),
+            tooltip: 'Change Language',
+            onPressed: () {
+              _showLanguageDialog(context, languageProvider);
+            },
+          ),
           if (isLoggedIn)
             IconButton(
               icon: const Icon(Icons.logout),
@@ -241,7 +323,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 await authProvider.logout();
                 if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  // Replace with a hardcoded string since the key doesn't exist
                   const SnackBar(content: Text('Logged out successfully')),
                 );
               },
@@ -338,6 +419,8 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(height: 20),
+            _buildCropSelector(),
+            const SizedBox(height: 20),
             if (_selectedImage != null) _buildImageDisplay(),
             Padding(
               padding: const EdgeInsets.all(16.0),
@@ -387,6 +470,54 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _showLanguageDialog(BuildContext context, LanguageProvider languageProvider) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(AppLocalizations.of(context)?.appTitle ?? 'Select Language'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: const Text('English'),
+              leading: Radio<Locale>(
+                value: const Locale('en'),
+                groupValue: languageProvider.locale,
+                onChanged: (Locale? value) {
+                  if (value != null) {
+                    languageProvider.setLocale(value);
+                    Navigator.of(ctx).pop();
+                  }
+                },
+              ),
+            ),
+            ListTile(
+              title: const Text('اردو'),
+              leading: Radio<Locale>(
+                value: const Locale('ur'),
+                groupValue: languageProvider.locale,
+                onChanged: (Locale? value) {
+                  if (value != null) {
+                    languageProvider.setLocale(value);
+                    Navigator.of(ctx).pop();
+                  }
+                },
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+            },
+            child: Text(AppLocalizations.of(context)?.cancel ?? 'Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showLoginDialog(BuildContext context) {
     final localizations = AppLocalizations.of(context);
     showDialog(
@@ -417,5 +548,12 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+  }
+}
+
+// Add this extension method for string capitalization
+extension StringExtension on String {
+  String capitalize() {
+    return "${this[0].toUpperCase()}${this.substring(1)}";
   }
 }

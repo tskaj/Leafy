@@ -47,7 +47,9 @@ class _LoginScreenState extends State<LoginScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Login successful!')),
         );
-        Navigator.of(context).pushReplacementNamed('/home');
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(result['message'])),
@@ -78,25 +80,21 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               children: [
                 const SizedBox(height: 20),
-                // In the build method, replace the Image.asset with:
-                Image.asset(
-                  'assets/images/logo.png',
+                // Using Icon instead of Image.asset to avoid asset loading issues
+                Container(
                   width: 100,
                   height: 100,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      width: 100,
-                      height: 100,
-                      color: Colors.green.shade100,
-                      child: const Center(
-                        child: Icon(
-                          Icons.eco,
-                          size: 50,
-                          color: Colors.green,
-                        ),
-                      ),
-                    );
-                  },
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade100,
+                    borderRadius: BorderRadius.circular(50),
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.eco,
+                      size: 50,
+                      color: Colors.green,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 20),
                 TextFormField(
@@ -153,7 +151,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 16),
                 TextButton(
                   onPressed: () {
-                    Navigator.of(context).pushReplacementNamed('/register');
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => SignupScreen()),
+                    );
                   },
                   child: const Text('Don\'t have an account? Register'),
                 ),
