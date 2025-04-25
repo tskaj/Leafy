@@ -1,23 +1,28 @@
 import 'dart:convert';
+import 'dart:async'; // Add this import for Timer
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import '../services/disease_service.dart';  // Add this import
+import '../services/auth_service.dart';
 
 class AuthProvider with ChangeNotifier {
   String? _token;
   String? _refreshToken;
-  DateTime? _expiryDate;
   String? _userId;
   String? _username;
+  String? _email;
+  DateTime? _expiryDate;
+  Timer? _authTimer;
 
-  // Add this getter
-  bool get isAuthenticated => token != null;
-  
+  bool get isAuth {
+    return token != null;
+  }
+
   String? get token {
-    if (_expiryDate != null &&
-        _expiryDate!.isAfter(DateTime.now()) &&
+    if (_expiryDate != null && 
+        _expiryDate!.isAfter(DateTime.now()) && 
         _token != null) {
       return _token;
     }
@@ -26,6 +31,19 @@ class AuthProvider with ChangeNotifier {
 
   String? get username {
     return _username;
+  }
+
+  String? get email {
+    return _email;
+  }
+
+  // Add this method to get the auth header
+  // Add this getter to your AuthProvider class if it doesn't exist
+  Map<String, String> get authHeaders {
+    return {
+      'Authorization': 'Bearer $_token',
+      'Content-Type': 'application/json',
+    };
   }
 
   Future<void> _saveAuthData(String token, String refreshToken) async {
@@ -203,6 +221,33 @@ class AuthProvider with ChangeNotifier {
       return {
         'success': false,
         'message': 'Could not register you. Error: ${error.toString()}',
+      };
+    }
+  }
+
+  // Update the register method to accept email as a parameter
+  Future<Map<String, dynamic>> register(String username, String email, String password) async {
+    try {
+      final result = await AuthService.register(username, email, password);
+      
+      if (result['success']) {
+        _token = result['token'];
+        _username = username;
+        _expiryDate = DateTime.now().add(const Duration(days: 30));
+        
+        final prefs = await SharedPreferences.getInstance();
+        prefs.setString('token', _token!);
+        prefs.setString('username', _username!);
+        prefs.setString('expiryDate', _expiryDate!.toIso8601String());
+        
+        notifyListeners();
+      }
+      
+      return result;
+    } catch (error) {
+      return {
+        'success': false,
+        'message': 'Failed to register: ${error.toString()}',
       };
     }
   }

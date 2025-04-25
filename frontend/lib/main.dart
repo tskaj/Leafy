@@ -1,63 +1,87 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'providers/auth_provider.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'providers/language_provider.dart';
-import 'screens/home_screen.dart';
+import 'providers/auth_provider.dart';
 import 'screens/language_selection_screen.dart';
+import 'screens/auth_screen.dart';
+import 'screens/home_screen.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'screens/register_screen.dart';
 
 Future<void> main() async {
-  // Ensure Flutter is initialized
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Load environment variables with error handling
-  try {
-    await dotenv.load(fileName: ".env");
-    print("Environment variables loaded successfully");
-  } catch (e) {
-    print("Error loading environment variables: $e");
-    // Set default values if .env fails to load
-    dotenv.env['API_BASE_URL'] = 'http://localhost:8000';
-  }
-  
-  // Check if this is the first launch
-  final prefs = await SharedPreferences.getInstance();
-  final isFirstLaunch = prefs.getBool('first_launch') ?? true;
-  
-  runApp(MyApp(isFirstLaunch: isFirstLaunch));
+  await dotenv.load(fileName: ".env");
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  final bool isFirstLaunch;
-  
-  const MyApp({super.key, required this.isFirstLaunch});
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (ctx) => AuthProvider()),
         ChangeNotifierProvider(create: (ctx) => LanguageProvider()),
+        ChangeNotifierProvider(create: (ctx) => AuthProvider()),
+        // Add other providers here
       ],
       child: Consumer<LanguageProvider>(
-        builder: (ctx, languageProvider, _) => MaterialApp(
-          title: 'Leafy',
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
-            useMaterial3: true,
-          ),
-          locale: languageProvider.locale,
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: const [
-            Locale('en'), // English
-            Locale('ur'), // Urdu
-          ],
-          home: isFirstLaunch 
-              ? const LanguageSelectionScreen() 
-              : const HomeScreen(),
-        ),
+        builder: (ctx, languageProvider, _) {
+          return MaterialApp(
+            title: 'Leafy',
+            debugShowCheckedModeBanner: false,
+            theme: ThemeData(
+              colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
+              useMaterial3: true,
+              fontFamily: 'Roboto',
+            ),
+            // Localization setup
+            locale: languageProvider.locale,
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [
+              Locale('en', ''), // English
+              Locale('ur', ''), // Urdu
+            ],
+            // Define initial route
+            initialRoute: '/',
+            // Add routes map here
+            routes: {
+              '/': (ctx) => Consumer<AuthProvider>(
+                builder: (ctx, authProvider, _) {
+                  // Check if user is authenticated
+                  if (authProvider.isAuth) {
+                    return const HomeScreen();
+                  } else {
+                    // Show language selection screen first time, then auth screen
+                    return FutureBuilder(
+                      future: authProvider.tryAutoLogin(),
+                      builder: (ctx, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Scaffold(
+                            body: Center(child: CircularProgressIndicator()),
+                          );
+                        } else {
+                          // If first time or language not selected, show language selection
+                          return const LanguageSelectionScreen();
+                        }
+                      },
+                    );
+                  }
+                },
+              ),
+              '/login': (ctx) => const AuthScreen(),
+              '/register': (ctx) => const RegisterScreen(),
+              '/home': (ctx) => const HomeScreen(),
+            },
+          );
+        },
       ),
     );
   }

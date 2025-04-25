@@ -1,181 +1,146 @@
-import 'dart:convert';
 import 'dart:io';
+import 'dart:convert';
 import 'dart:typed_data';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart';  // Add this import for MediaType
-import 'disease_service.dart';
+import 'package:http_parser/http_parser.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class CommunityService {
-  static Future<Map<String, dynamic>> getPosts(String token) async {
-    try {
-      final url = Uri.parse('${DiseaseService.getBaseUrl()}/community/posts/');
-      
-      final response = await http.get(
-        url,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
-      
-      final responseData = json.decode(response.body);
-      
-      if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'data': responseData,
-        };
-      } else {
-        return {
-          'success': false,
-          'message': responseData['detail'] ?? 'Failed to fetch posts',
-        };
-      }
-    } catch (e) {
-      return {
-        'success': false,
-        'message': 'Error: ${e.toString()}',
-      };
-    }
+  static String getBaseUrl() {
+    return dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000';
   }
 
-  static Future<Map<String, dynamic>> createPost(
-    String caption,
-    Map<String, dynamic> imageData,
-    String token,
-  ) async {
+  static Future<List<dynamic>> getPosts(String? token) async {
     try {
-      final url = Uri.parse('${DiseaseService.getBaseUrl()}/community/posts/');
-      
-      // Create a multipart request
-      var request = http.MultipartRequest('POST', url);
-      
-      // Add authorization header
-      request.headers['Authorization'] = 'Bearer $token';
-      
-      // Add text fields
-      request.fields['caption'] = caption;
-      
-      // Add the image file
-      if (kIsWeb) {
-        // For web
-        final bytes = imageData['bytes'] as Uint8List;
-        final fileName = imageData['name'] as String;
-        
-        request.files.add(
-          http.MultipartFile.fromBytes(
-            'image',
-            bytes,
-            filename: fileName,
-            contentType: MediaType.parse(imageData['mimeType']),
-          ),
-        );
-      } else {
-        // For mobile
-        final file = File(imageData['path']);
-        request.files.add(
-          await http.MultipartFile.fromPath('image', file.path),
-        );
-      }
-      
-      // Send the request
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
-      
-      // Debug information
-      print('Create post response status: ${response.statusCode}');
-      print('Create post response body: ${response.body}');
-      
-      // Check if response is valid JSON
-      if (response.body.trim().startsWith('<')) {
-        // HTML response - error
-        return {
-          'success': false,
-          'message': 'Server returned HTML instead of JSON. Please check server logs.',
-        };
-      }
-      
-      try {
-        final responseData = json.decode(response.body);
-        
-        if (response.statusCode == 201) {
-          return {
-            'success': true,
-            'data': responseData,
-          };
-        } else {
-          return {
-            'success': false,
-            'message': responseData['detail'] ?? responseData['error'] ?? 'Failed to create post',
-          };
-        }
-      } catch (jsonError) {
-        return {
-          'success': false,
-          'message': 'Invalid response format: ${jsonError.toString()}',
-        };
-      }
-    } catch (e) {
-      print('Error creating post: ${e.toString()}');
-      return {
-        'success': false,
-        'message': 'Error: ${e.toString()}',
+      final headers = {
+        'Content-Type': 'application/json',
       };
+
+      if (token != null) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+
+      final response = await http.get(
+        Uri.parse('${getBaseUrl()}/api/community/posts/'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Failed to load posts: ${response.statusCode}');
+      }
+    } catch (error) {
+      throw Exception('Network error: ${error.toString()}');
     }
   }
 
   static Future<Map<String, dynamic>> likePost(int postId, String token) async {
     try {
-      final url = Uri.parse('${DiseaseService.getBaseUrl()}/community/posts/$postId/like/');
-      
       final response = await http.post(
-        url,
+        Uri.parse('${getBaseUrl()}/api/community/posts/$postId/like/'),
         headers: {
-          'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
         },
       );
-      
+
+      final responseData = json.decode(response.body);
+
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final responseData = json.decode(response.body);
         return {
           'success': true,
-          'data': responseData,
+          'is_liked': responseData['is_liked'],
         };
       } else {
-        final responseData = json.decode(response.body);
         return {
           'success': false,
           'message': responseData['detail'] ?? 'Failed to like post',
         };
       }
-    } catch (e) {
+    } catch (error) {
       return {
         'success': false,
-        'message': 'Error: ${e.toString()}',
+        'message': 'Network error: ${error.toString()}',
       };
     }
   }
 
-  // Add the missing addComment method
-  static Future<Map<String, dynamic>> addComment(int postId, String content, String token) async {
+  static Future<Map<String, dynamic>> addComment(
+      int postId, String content, String token, {int? parentId}) async {
     try {
-      final url = Uri.parse('${DiseaseService.getBaseUrl()}/community/posts/$postId/comments/');
+      final Map<String, dynamic> requestBody = {
+        'content': content,
+      };
+      
+      if (parentId != null) {
+        requestBody['parent_id'] = parentId;
+      }
       
       final response = await http.post(
-        url,
+        Uri.parse('${getBaseUrl()}/api/community/posts/$postId/comments/'),
         headers: {
-          'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
         },
-        body: json.encode({
-          'content': content,
-        }),
+        body: json.encode(requestBody),
       );
-      
+
       final responseData = json.decode(response.body);
-      
+
+      if (response.statusCode == 201) {
+        return {
+          'success': true,
+          'comment': responseData,
+        };
+      } else {
+        return {
+          'success': false,
+          'message': responseData['detail'] ?? 'Failed to add comment',
+        };
+      }
+    } catch (error) {
+      return {
+        'success': false,
+        'message': 'Network error: ${error.toString()}',
+      };
+    }
+  }
+
+  static Future<Map<String, dynamic>> createPost(
+      String caption, File? image, String token, {Uint8List? imageBytes}) async {
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('${getBaseUrl()}/api/community/posts/'),
+      );
+
+      request.headers['Authorization'] = 'Bearer $token';
+      request.fields['caption'] = caption;
+
+      if (image != null) {
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'image',
+            image.path,
+          ),
+        );
+      } else if (imageBytes != null) {
+        // For web platform
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'image',
+            imageBytes,
+            filename: 'web_image.jpg',
+            contentType: MediaType('image', 'jpeg'),
+          ),
+        );
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      final responseData = json.decode(response.body);
+
       if (response.statusCode == 201) {
         return {
           'success': true,
@@ -184,18 +149,49 @@ class CommunityService {
       } else {
         return {
           'success': false,
-          'message': responseData['detail'] ?? 'Failed to add comment',
+          'message': responseData['detail'] ?? 'Failed to create post',
         };
       }
-    } catch (e) {
+    } catch (error) {
       return {
         'success': false,
-        'message': 'Error: ${e.toString()}',
+        'message': 'Network error: ${error.toString()}',
       };
     }
   }
 
-  static String getBaseUrl() {
-      return 'http://localhost:8000';
+  static Future<Map<String, dynamic>> reactToPost(
+      int postId, String reactionType, String token) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${getBaseUrl()}/api/community/posts/$postId/react/'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({
+          'reaction_type': reactionType,
+        }),
+      );
+
+      final responseData = json.decode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          'success': true,
+          'reaction': responseData,
+        };
+      } else {
+        return {
+          'success': false,
+          'message': responseData['detail'] ?? 'Failed to react to post',
+        };
+      }
+    } catch (error) {
+      return {
+        'success': false,
+        'message': 'Network error: ${error.toString()}',
+      };
     }
+  }
 }

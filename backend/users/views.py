@@ -16,6 +16,8 @@ from io import BytesIO
 from PIL import Image
 from .models import DiseaseInfo  # Make sure this model exists in your models.py
 from django.utils import timezone
+# Add this import at the top of your views.py file
+from .models import CommunityPost, PostLike, Comment  # Changed PostComment to Comment
 
 
 class RegisterView(APIView):
@@ -313,3 +315,36 @@ class CommentListCreateView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except CommunityPost.DoesNotExist:
             return Response({"error": "Post not found"}, status=status.HTTP_404_NOT_FOUND)
+
+# Add this view to handle post deletion
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_post(request, post_id):
+    try:
+        # Get the post
+        post = CommunityPost.objects.get(id=post_id)
+        
+        # Check if the user is the owner of the post
+        if post.user != request.user:
+            return Response(
+                {'message': 'You do not have permission to delete this post'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Delete the post
+        post.delete()
+        
+        return Response(
+            {'message': 'Post deleted successfully'}, 
+            status=status.HTTP_200_OK
+        )
+    except CommunityPost.DoesNotExist:
+        return Response(
+            {'message': 'Post not found'}, 
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        return Response(
+            {'message': f'Error: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

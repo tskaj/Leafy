@@ -1,35 +1,86 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../services/disease_service.dart';
+import '../utils/constants.dart';
 
 class AuthService {
-  Future<Map<String, dynamic>> login(String email, String password) async {
+  static Future<Map<String, dynamic>> login(String username, String password) async {
     try {
-      // Notice the URL change from /api/login/ to /login/
       final response = await http.post(
-        Uri.parse('${DiseaseService.getBaseUrl()}/login/'),
+        Uri.parse('${Constants.baseUrl}/auth/login/'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
+          'username': username,
+          'password': password,
+        }),
+      );
+
+      final responseData = json.decode(response.body);
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'token': responseData['token'],
+          'user': responseData['user'],
+        };
+      } else {
+        return {
+          'success': false,
+          'message': responseData['detail'] ?? 'Failed to login',
+        };
+      }
+    } catch (error) {
+      return {
+        'success': false,
+        'message': 'Network error: ${error.toString()}',
+      };
+    }
+  }
+
+  static Future<Map<String, dynamic>> register(
+      String username, String email, String password) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${Constants.baseUrl}/auth/register/'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'username': username,
           'email': email,
           'password': password,
         }),
       );
-      
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
+
+      final responseData = json.decode(response.body);
+
+      if (response.statusCode == 201) {
+        return {
+          'success': true,
+          'message': 'Registration successful',
+        };
       } else {
+        String errorMessage = 'Registration failed';
+        
+        if (responseData is Map) {
+          if (responseData.containsKey('username')) {
+            errorMessage = responseData['username'][0];
+          } else if (responseData.containsKey('email')) {
+            errorMessage = responseData['email'][0];
+          } else if (responseData.containsKey('password')) {
+            errorMessage = responseData['password'][0];
+          } else if (responseData.containsKey('detail')) {
+            errorMessage = responseData['detail'];
+          }
+        }
+        
         return {
           'success': false,
-          'message': 'Login failed: ${response.statusCode}',
+          'message': errorMessage,
         };
       }
-    } catch (e) {
+    } catch (error) {
       return {
         'success': false,
-        'message': 'Error: ${e.toString()}',
+        'message': 'Network error: ${error.toString()}',
       };
     }
   }
-  
-  // Add other auth methods here (register, logout, etc.)
 }

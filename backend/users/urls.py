@@ -18,4 +18,7 @@ urlpatterns = [
     path('community/posts/<int:pk>/', CommunityPostDetailView.as_view(), name='post_detail'),
     path('community/posts/<int:pk>/like/', PostLikeView.as_view(), name='post_like'),
     path('community/posts/<int:post_id>/comments/', CommentListCreateView.as_view(), name='post_comments'),
+    path('community/posts/<int:pk>/react/', views.post_reaction, name='post-reaction'),
+    # Add this URL pattern
+    path('community/posts/<int:post_id>/', views.delete_post, name='delete-post'),
 ]
