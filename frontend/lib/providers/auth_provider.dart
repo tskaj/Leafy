@@ -1,23 +1,30 @@
 import 'dart:convert';
+import 'dart:async'; // Add this import for Timer
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../services/disease_service.dart';  // Add this import
+import '../services/auth_service.dart';
 
 class AuthProvider with ChangeNotifier {
   String? _token;
   String? _refreshToken;
-  DateTime? _expiryDate;
   String? _userId;
   String? _username;
+  String? _email;
+  String? _profileImage;
+  DateTime? _expiryDate;
+  Timer? _authTimer;
 
-  // Add this getter
-  bool get isAuthenticated => token != null;
-  
+  bool get isAuth {
+    return token != null;
+  }
+
   String? get token {
-    if (_expiryDate != null &&
-        _expiryDate!.isAfter(DateTime.now()) &&
+    if (_expiryDate != null && 
+        _expiryDate!.isAfter(DateTime.now()) && 
         _token != null) {
       return _token;
     }
@@ -25,10 +32,46 @@ class AuthProvider with ChangeNotifier {
   }
 
   String? get username {
+    print('Username getter called: $_username');
     return _username;
   }
 
-  Future<void> _saveAuthData(String token, String refreshToken) async {
+  String? get email {
+    return _email;
+  }
+
+  String? get profileImage {
+    return _profileImage;
+  }
+
+  void updateProfileImage(String imageUrl) {
+    // Ensure the image URL is complete
+    if (imageUrl.startsWith('http')) {
+      _profileImage = imageUrl;
+    } else {
+      // For relative URLs, construct the full URL
+      final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000';
+      _profileImage = '$baseUrl$imageUrl';
+    }
+    
+    // Save the updated profile image to SharedPreferences if we have a token
+    if (_token != null && _refreshToken != null) {
+      _saveAuthData(_token!, _refreshToken!, profileImage: _profileImage, email: _email);
+    }
+    
+    notifyListeners();
+  }
+
+  // Add this method to get the auth header
+  // Add this getter to your AuthProvider class if it doesn't exist
+  Map<String, String> get authHeaders {
+    return {
+      'Authorization': 'Bearer $_token',
+      'Content-Type': 'application/json',
+    };
+  }
+
+  Future<void> _saveAuthData(String token, String refreshToken, {String? profileImage, String? email, String? username}) async {
     final prefs = await SharedPreferences.getInstance();
     final userData = json.encode({
       'token': token,
@@ -36,6 +79,9 @@ class AuthProvider with ChangeNotifier {
       'expiryDate': DateTime.now()
           .add(const Duration(minutes: 60))
           .toIso8601String(),
+      'profileImage': profileImage,
+      'email': email,
+      'username': username, // Add username to saved data
     });
     prefs.setString('userData', userData);
   }
@@ -64,10 +110,26 @@ class AuthProvider with ChangeNotifier {
     _refreshToken = extractedUserData['refreshToken'];
     _expiryDate = expiryDate;
     
-    // Decode JWT to get user info
-    Map<String, dynamic> decodedToken = JwtDecoder.decode(_token!);
-    _userId = decodedToken['user_id'].toString();
-    _username = decodedToken['username'];
+    // Load profile image and email if available
+    _profileImage = extractedUserData['profileImage'];
+    _email = extractedUserData['email'];
+    _username = extractedUserData['username']; // Add this line to load username from SharedPreferences
+    
+    // Decode JWT to get user info if username is not available
+    if (_username == null || _username!.isEmpty) {
+      try {
+        Map<String, dynamic> decodedToken = JwtDecoder.decode(_token!);
+        _userId = decodedToken['user_id'].toString();
+        _username = decodedToken['username'];
+        print('Decoded token: $decodedToken');
+        print('Setting username to: $_username');
+        
+        // Save the username to SharedPreferences
+        _saveAuthData(_token!, _refreshToken!, profileImage: _profileImage, email: _email, username: _username);
+      } catch (e) {
+        print('Error decoding token: $e');
+      }
+    }
     
     notifyListeners();
     return true;
@@ -93,6 +155,41 @@ class AuthProvider with ChangeNotifier {
       return false;
     } catch (error) {
       return false;
+    }
+  }
+
+  // Add method to fetch user profile data
+  Future<void> _fetchUserProfile() async {
+    if (_token == null) return;
+    
+    try {
+      final baseUrl = DiseaseService.getBaseUrl();
+      final url = Uri.parse('$baseUrl/profile/');
+      
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $_token',
+          'Content-Type': 'application/json',
+        },
+      );
+      
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        
+        // Update profile data
+        if (responseData['profile_image'] != null) {
+          updateProfileImage(responseData['profile_image']);
+        }
+        
+        if (responseData['email'] != null) {
+          _email = responseData['email'];
+        }
+        
+        notifyListeners();
+      }
+    } catch (error) {
+      print('Error fetching user profile: $error');
     }
   }
 
@@ -130,9 +227,16 @@ class AuthProvider with ChangeNotifier {
           // Decode JWT to get user info
           Map<String, dynamic> decodedToken = JwtDecoder.decode(_token!);
           _userId = decodedToken['user_id'].toString();
-          _username = decodedToken['username'];
           
-          _saveAuthData(_token!, _refreshToken!);
+          // Get username directly from response data instead of JWT token
+          _username = responseData['username'];
+          print('Decoded token: $decodedToken');
+          print('Setting username to: $_username');
+          
+          // Fetch user profile to get profile image, email, username
+          await _fetchUserProfile();
+          
+          _saveAuthData(_token!, _refreshToken!, profileImage: _profileImage, email: _email, username: _username);
           notifyListeners();
           return {'success': true};
         } else {
@@ -207,12 +311,41 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  // Update the register method to accept email as a parameter
+  Future<Map<String, dynamic>> register(String username, String email, String password) async {
+    try {
+      final result = await AuthService.register(username, email, password);
+      
+      if (result['success']) {
+        _token = result['token'];
+        _username = username;
+        _expiryDate = DateTime.now().add(const Duration(days: 30));
+        
+        final prefs = await SharedPreferences.getInstance();
+        prefs.setString('token', _token!);
+        prefs.setString('username', _username!);
+        prefs.setString('expiryDate', _expiryDate!.toIso8601String());
+        
+        notifyListeners();
+      }
+      
+      return result;
+    } catch (error) {
+      return {
+        'success': false,
+        'message': 'Failed to register: ${error.toString()}',
+      };
+    }
+  }
+
   Future<void> logout() async {
     _token = null;
     _refreshToken = null;
     _userId = null;
     _expiryDate = null;
     _username = null;
+    _profileImage = null;
+    _email = null;
     
     final prefs = await SharedPreferences.getInstance();
     prefs.clear();

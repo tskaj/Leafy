@@ -1,86 +1,130 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:lottie/lottie.dart';
 import '../providers/language_provider.dart';
 import 'home_screen.dart';
+import 'main_navigation_screen.dart';
 
 class LanguageSelectionScreen extends StatelessWidget {
-  const LanguageSelectionScreen({Key? key}) : super(key: key);
+  const LanguageSelectionScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final languageProvider = Provider.of<LanguageProvider>(context);
+    final screenSize = MediaQuery.of(context).size;
     
     return Scaffold(
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.eco,
-                size: 80,
-                color: Colors.green,
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Welcome to Leafy',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Single large animation
+                Container(
+                  height: screenSize.height * 0.4, // 40% of screen height
+                  width: screenSize.width,
+                  child: Lottie.asset(
+                    'assets/animations/plant_animation.json',
+                    fit: BoxFit.contain,
+                    repeat: true,
+                    animate: true,
+                    errorBuilder: (context, error, stackTrace) {
+                      print('Lottie error: $error');
+                      return Container(
+                        color: Colors.green.withOpacity(0.2),
+                        child: const Center(
+                          child: Icon(
+                            Icons.local_florist,
+                            size: 100,
+                            color: Colors.green,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Please select your preferred language',
-                style: TextStyle(
-                  fontSize: 16,
+                
+                const SizedBox(height: 40),
+                
+                const Text(
+                  'Welcome to Leafy',
+                  style: TextStyle(
+                    fontSize: 28, 
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 48),
-              _buildLanguageOption(
-                context,
-                'English',
-                const Locale('en'),
-                languageProvider,
-              ),
-              const SizedBox(height: 16),
-              _buildLanguageOption(
-                context,
-                'اردو',
-                const Locale('ur'),
-                languageProvider,
-              ),
-            ],
+                
+                const SizedBox(height: 16),
+                
+                const Text(
+                  'Please select your preferred language',
+                  style: TextStyle(fontSize: 16),
+                  textAlign: TextAlign.center,
+                ),
+                
+                const SizedBox(height: 40),
+                
+                // English button
+                _buildLanguageButton(
+                  context,
+                  'English',
+                  const Locale('en', ''),
+                  Icons.language,
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Urdu button
+                _buildLanguageButton(
+                  context,
+                  'اردو (Urdu)',
+                  const Locale('ur', ''),
+                  Icons.language,
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildLanguageOption(
-    BuildContext context,
-    String languageName,
+  Widget _buildLanguageButton(
+    BuildContext context, 
+    String language, 
     Locale locale,
-    LanguageProvider provider,
+    IconData icon,
   ) {
+    final languageProvider = Provider.of<LanguageProvider>(context, listen: false);
+    
     return SizedBox(
       width: double.infinity,
-      child: ElevatedButton(
+      child: ElevatedButton.icon(
+        onPressed: () async {
+          // Set the selected language
+          await languageProvider.setLocale(locale);
+          
+          // Navigate to main navigation screen
+          if (context.mounted) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (ctx) => const MainNavigationScreen()),
+            );
+          }
+        },
+        icon: Icon(icon),
+        label: Text(
+          language,
+          style: const TextStyle(fontSize: 16),
+        ),
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 16),
-          backgroundColor: provider.locale == locale ? Colors.green : null,
-          foregroundColor: provider.locale == locale ? Colors.white : null,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
-        onPressed: () {
-          provider.setLocale(locale);
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
-          );
-        },
-        child: Text(languageName),
       ),
     );
   }
