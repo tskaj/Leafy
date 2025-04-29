@@ -5,9 +5,11 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
+    profile_image = serializers.ImageField(read_only=True)
+    
     class Meta:
         model = User
-        fields = ['id', 'username', 'email']
+        fields = ['id', 'username', 'email', 'profile_image']
 
 class CommentSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)

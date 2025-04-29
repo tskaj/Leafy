@@ -3,48 +3,48 @@ import 'package:provider/provider.dart';
 import 'package:lottie/lottie.dart';
 import '../providers/language_provider.dart';
 import 'home_screen.dart';
+import 'main_navigation_screen.dart';
 
 class LanguageSelectionScreen extends StatelessWidget {
   const LanguageSelectionScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    
     return Scaffold(
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
-          child: SingleChildScrollView(  // Add this to fix overflow
+          child: SingleChildScrollView(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // App logo or animation - fixed path
-                // Replace this:
-                Lottie.asset(
-                  'assets/animations/plant_animation.json',
-                  height: 200,
-                  repeat: true,
+                // Single large animation
+                Container(
+                  height: screenSize.height * 0.4, // 40% of screen height
+                  width: screenSize.width,
+                  child: Lottie.asset(
+                    'assets/animations/plant_animation.json',
+                    fit: BoxFit.contain,
+                    repeat: true,
+                    animate: true,
+                    errorBuilder: (context, error, stackTrace) {
+                      print('Lottie error: $error');
+                      return Container(
+                        color: Colors.green.withOpacity(0.2),
+                        child: const Center(
+                          child: Icon(
+                            Icons.local_florist,
+                            size: 100,
+                            color: Colors.green,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ),
                 
-                // With this (no change in path, just adding error handling):
-                Lottie.asset(
-                  'assets/animations/plant_animation.json',
-                  height: 200,
-                  repeat: true,
-                  errorBuilder: (context, error, stackTrace) {
-                    print('Lottie error: $error');
-                    return Container(
-                      height: 200,
-                      color: Colors.green.withOpacity(0.2),
-                      child: const Center(
-                        child: Icon(
-                          Icons.local_florist,
-                          size: 80,
-                          color: Colors.green,
-                        ),
-                      ),
-                    );
-                  },
-                ),
                 const SizedBox(height: 40),
                 
                 const Text(
@@ -98,18 +98,19 @@ class LanguageSelectionScreen extends StatelessWidget {
     Locale locale,
     IconData icon,
   ) {
+    final languageProvider = Provider.of<LanguageProvider>(context, listen: false);
+    
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
         onPressed: () async {
           // Set the selected language
-          await Provider.of<LanguageProvider>(context, listen: false)
-              .setLocale(locale);
+          await languageProvider.setLocale(locale);
           
-          // Navigate to home screen
+          // Navigate to main navigation screen
           if (context.mounted) {
             Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (ctx) => const HomeScreen()),
+              MaterialPageRoute(builder: (ctx) => const MainNavigationScreen()),
             );
           }
         },
