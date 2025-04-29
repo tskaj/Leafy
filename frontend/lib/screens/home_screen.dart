@@ -300,7 +300,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final languageProvider = Provider.of<LanguageProvider>(context);
-    final isLoggedIn = authProvider.isAuthenticated;
+    final isLoggedIn = authProvider.isAuth;
+    // Remove the duplicate declaration
     final username = authProvider.username;
     final localizations = AppLocalizations.of(context);
   
@@ -533,7 +534,7 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: () {
               Navigator.of(ctx).pop();
             },
-            child: Text(localizations?.cancel ?? 'Cancel'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () {

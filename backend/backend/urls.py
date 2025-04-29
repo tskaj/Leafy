@@ -18,6 +18,7 @@ from users.views import (
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/community/', include('community.urls')),
     
     # Authentication endpoints
     path('register/', RegisterView.as_view(), name='register'),
