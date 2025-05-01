@@ -6,8 +6,10 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'providers/auth_provider.dart';
 import 'providers/language_provider.dart';
 import 'screens/main_navigation_screen.dart';
-import 'screens/login_screen.dart';
-import 'screens/register_screen.dart';
+import 'screens/new_login_screen.dart'; // <-- Add this line
+import 'screens/new_register_screen.dart'; // <-- Add this line
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'services/disease_service.dart'; // Import DiseaseService
 import 'screens/home_screen.dart';
 import 'screens/community_screen.dart';
 import 'screens/image_picker_screen.dart';
@@ -57,8 +59,8 @@ class MyApp extends StatelessWidget {
               },
             ),
             routes: {
-              '/login': (ctx) => const LoginScreen(),
-              '/register': (ctx) => const RegisterScreen(),
+              '/login': (context) => const NewLoginScreen(),
+              '/register': (context) => const NewRegisterScreen(),
               '/home': (ctx) => const HomeScreen(),
               '/community': (ctx) => const CommunityScreen(),
               '/image-picker': (ctx) => const ImagePickerScreen(),

@@ -46,11 +46,13 @@ dev_dependencies:
 # Update the assets section in your pubspec.yaml
 flutter:
   uses-material-design: true
-  
+
+  # To add assets to your application, add an assets section, like this:
   assets:
     - assets/images/
-    - assets/animations/  # Add this line
-    - assets/fonts/
+    - assets/translations/
+    - assets/fonts/  # Make sure this directory exists
+    - assets/animations/ # Make sure this directory exists
     - .env
-  
+
   generate: true # Enable code generation

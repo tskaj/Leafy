@@ -7,7 +7,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
 import '../providers/language_provider.dart';
 import '../services/disease_service.dart';
-import 'login_screen.dart';
+import 'new_login_screen.dart';
 import 'community_screen.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
@@ -53,7 +53,14 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     }
   }
-
+  void _navigateToLogin() {
+    // Ensure context is still valid before navigating
+    if (mounted) {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (ctx) => const NewLoginScreen()), // Now this should be found
+      );
+    }
+  }
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
@@ -135,42 +142,82 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildCropSelector() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Select Crop Type:',
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          _loadingCrops
-              ? const Center(child: CircularProgressIndicator())
-              : DropdownButtonFormField<String>(
-                  value: _selectedCrop,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  ),
-                  items: _availableCrops.map((String crop) {
-                    return DropdownMenuItem<String>(
-                      value: crop,
-                      child: Text(crop.capitalize()),
-                    );
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    if (newValue != null) {
-                      setState(() {
-                        _selectedCrop = newValue;
-                        _detectionResult = null;
-                      });
-                    }
-                  },
+    return _loadingCrops
+        ? const Center(child: CircularProgressIndicator())
+        : Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Select Crop Type:',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-        ],
-      ),
-    );
+                const SizedBox(height: 12),
+                Container(
+                  height: 120,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _availableCrops.length,
+                    itemBuilder: (context, index) {
+                      final crop = _availableCrops[index];
+                      final isSelected = crop == _selectedCrop;
+                      
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedCrop = crop;
+                            _detectionResult = null;
+                          });
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          margin: const EdgeInsets.only(right: 12),
+                          width: 100,
+                          decoration: BoxDecoration(
+                            color: isSelected ? Colors.green.shade100 : Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isSelected ? Colors.green : Colors.grey.shade300,
+                              width: isSelected ? 2 : 1,
+                            ),
+                            boxShadow: isSelected
+                                ? [
+                                    BoxShadow(
+                                      color: Colors.green.withOpacity(0.3),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    )
+                                  ]
+                                : null,
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.eco,
+                                color: isSelected ? Colors.green : Colors.grey,
+                                size: 32,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                crop.capitalize(),
+                                style: TextStyle(
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  color: isSelected ? Colors.green : Colors.black87,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          );
   }
 
   Widget _buildDetectionResult() {
@@ -188,58 +235,137 @@ class _HomeScreenState extends State<HomeScreen> {
     final sortedProbabilities = probabilities.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.all(16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '${localizations?.prediction ?? "Prediction"}: $prediction',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              localizations?.probabilities ?? "Probabilities",
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            ...sortedProbabilities.map((entry) {
-              final percentage = (entry.value * 100).toStringAsFixed(2);
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  children: [
-                    Expanded(
-                      flex: 3,
-                      child: Text(entry.key),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Card(
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    Expanded(
-                      flex: 1,
-                      child: Text('$percentage%'),
-                    ),
-                    Expanded(
-                      flex: 6,
-                      child: LinearProgressIndicator(
-                        value: entry.value,
-                        backgroundColor: Colors.grey[300],
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          entry.key == prediction ? Colors.green : Colors.blue,
+                    child: const Icon(Icons.check_circle, color: Colors.green),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          localizations?.prediction ?? "Prediction",
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
                         ),
-                      ),
+                        Text(
+                          prediction,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
+                ],
+              ),
+              const Divider(height: 30),
+              Text(
+                localizations?.probabilities ?? "Probabilities",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
                 ),
-              );
-            }),
-          ],
+              ),
+              const SizedBox(height: 16),
+              ...sortedProbabilities.map((entry) {
+                final percentage = (entry.value * 100).toStringAsFixed(1);
+                final isTopPrediction = entry.key == prediction;
+                
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              entry.key,
+                              style: TextStyle(
+                                fontWeight: isTopPrediction ? FontWeight.bold : FontWeight.normal,
+                                color: isTopPrediction ? Colors.green[800] : Colors.grey[800],
+                              ),
+                            ),
+                          ),
+                          Text(
+                            '$percentage%',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: isTopPrediction ? Colors.green[800] : Colors.grey[800],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Stack(
+                        children: [
+                          Container(
+                            height: 8,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                          FractionallySizedBox(
+                            widthFactor: entry.value,
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 500),
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: isTopPrediction ? Colors.green : Colors.blue[400],
+                                borderRadius: BorderRadius.circular(4),
+                                boxShadow: isTopPrediction ? [
+                                  BoxShadow(
+                                    color: Colors.green.withOpacity(0.4),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ] : null,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ],
+          ),
         ),
       ),
     );
@@ -250,48 +376,89 @@ class _HomeScreenState extends State<HomeScreen> {
       return const SizedBox();
     }
 
-    if (kIsWeb) {
-      // For web, we need to use a different approach
-      return FutureBuilder<Uint8List>(
-        future: _selectedImage!.readAsBytes(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.done && 
-              snapshot.hasData) {
-            return Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.memory(
-                  snapshot.data!,
-                  height: 300,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
+    return Container(
+      margin: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
+          children: [
+            if (kIsWeb)
+              // For web platforms
+              FutureBuilder<Uint8List>(
+                future: _selectedImage!.readAsBytes(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.done && 
+                      snapshot.hasData) {
+                    return Image.memory(
+                      snapshot.data!,
+                      height: 300,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    );
+                  } else {
+                    return Container(
+                      height: 300,
+                      width: double.infinity,
+                      color: Colors.grey.shade200,
+                      child: const Center(child: CircularProgressIndicator()),
+                    );
+                  }
+                },
+              )
+            else
+              // For mobile platforms
+              Image.file(
+                File(_selectedImage!.path),
+                height: 300,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
+            
+            // Overlay gradient for better text visibility if needed
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                height: 60,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.5),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Align(
+                  alignment: Alignment.bottomLeft,
+                  child: Text(
+                    'Selected Image',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
-            );
-          } else {
-            return const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Center(child: CircularProgressIndicator()),
-            );
-          }
-        },
-      );
-    } else {
-      // For mobile platforms
-      return Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Image.file(
-            File(_selectedImage!.path),
-            height: 300,
-            width: double.infinity,
-            fit: BoxFit.cover,
-          ),
+            ),
+          ],
         ),
-      );
-    }
+      ),
+    );
   }
 
   // In the build method of your HomeScreen class, update the AppBar:
@@ -307,92 +474,197 @@ class _HomeScreenState extends State<HomeScreen> {
   
     return Scaffold(
       appBar: AppBar(
-        title: Text(localizations?.appTitle ?? 'Leafy'),
+        elevation: 0,
+        backgroundColor: Colors.green.shade50,
+        foregroundColor: Colors.green.shade800,
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.eco, color: Colors.green),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              localizations?.appTitle ?? 'Leafy',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
         actions: [
           // Language selection button
-          IconButton(
-            icon: const Icon(Icons.language),
-            tooltip: 'Change Language',
-            onPressed: () {
-              _showLanguageDialog(context, languageProvider);
-            },
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.language, color: Colors.green),
+              tooltip: 'Change Language',
+              onPressed: () {
+                _showLanguageDialog(context, languageProvider);
+              },
+            ),
           ),
           if (isLoggedIn)
-            IconButton(
-              icon: const Icon(Icons.logout),
-              onPressed: () async {
-                await authProvider.logout();
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Logged out successfully')),
-                );
-              },
+            Container(
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.logout, color: Colors.green),
+                onPressed: () async {
+                  await authProvider.logout();
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Logged out successfully')),
+                  );
+                },
+              ),
             ),
         ],
       ),
       drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
+        child: Column(
           children: [
-            DrawerHeader(
-              decoration: const BoxDecoration(
-                color: Colors.green,
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 50, 16, 20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.green.shade400,
+                    Colors.green.shade700,
+                  ],
+                ),
               ),
+              width: double.infinity,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const CircleAvatar(
-                    radius: 40,
-                    backgroundColor: Colors.white,
-                    child: Icon(Icons.eco, size: 40, color: Colors.green),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.eco, size: 40, color: Colors.green),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 16),
                   Text(
                     isLoggedIn 
                         ? 'Hello, ${username ?? ""}!' 
                         : (localizations?.welcomeMessage ?? 'Welcome to Leafy!'),
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 18,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    isLoggedIn 
+                        ? 'Glad to see you again!' 
+                        : 'Sign in to access all features',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 14,
                     ),
                   ),
                 ],
               ),
             ),
-            ListTile(
-              leading: const Icon(Icons.home),
-              title: const Text('Home'),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.people),
-              title: Text(localizations?.community ?? 'Community'),
-              onTap: () {
-                Navigator.pop(context);
-                if (isLoggedIn) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const CommunityScreen()),
-                  );
-                } else {
-                  _showLoginDialog(context);
-                }
-              },
-            ),
-            if (!isLoggedIn)
-              ListTile(
-                leading: const Icon(Icons.login),
-                title: Text(localizations?.login ?? 'Login'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const LoginScreen()),
-                  );
-                },
+            const SizedBox(height: 16),
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  _buildDrawerItem(
+                    icon: Icons.home_rounded,
+                    title: 'Home',
+                    isSelected: true,
+                    onTap: () {
+                      Navigator.pop(context);
+                    },
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.people_rounded,
+                    title: localizations?.community ?? 'Community',
+                    onTap: () {
+                      Navigator.pop(context);
+                      if (isLoggedIn) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const CommunityScreen()),
+                        );
+                      } else {
+                        _showLoginDialog(context);
+                      }
+                    },
+                  ),
+                  if (!isLoggedIn)
+                    _buildDrawerItem(
+                      icon: Icons.login_rounded,
+                      title: localizations?.login ?? 'Login',
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const NewLoginScreen()),
+                        );
+                      },
+                    ),
+                ],
               ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, color: Colors.grey),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Leafy v1.0.0',
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -400,31 +672,83 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                isLoggedIn 
-                    ? 'Welcome, ${username ?? ""}!' 
-                    : (localizations?.welcomeMessage ?? 'Welcome to Leafy!'),
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+            // Header with welcome message and title
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 30),
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(30),
+                  bottomRight: Radius.circular(30),
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Text(
-                localizations?.uploadLeafImage ?? 'Upload a leaf image',
-                style: const TextStyle(fontSize: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isLoggedIn 
+                        ? 'Welcome, ${username ?? ""}!' 
+                        : (localizations?.welcomeMessage ?? 'Welcome to Leafy!'),
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.green.shade800,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    localizations?.detectDisease ?? 'Identify Crop Diseases',
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    localizations?.uploadLeafImage ?? 'Upload a leaf image to detect diseases and get instant results',
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 20),
+            
+            const SizedBox(height: 16),
+            
+            // Crop selector
             _buildCropSelector(),
-            const SizedBox(height: 20),
-            if (_selectedImage != null) _buildImageDisplay(),
+            
+            // Image display
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              child: _selectedImage != null 
+                  ? _buildImageDisplay() 
+                  : Container(
+                      margin: const EdgeInsets.all(16),
+                      height: 200,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.image, size: 48, color: Colors.grey.shade400),
+                            const SizedBox(height: 12),
+                            Text(
+                              localizations?.selectImage ?? 'Select an image to analyze',
+                              style: TextStyle(color: Colors.grey.shade600),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+            ),
+            
+            // Image selection buttons
             Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -432,7 +756,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: ElevatedButton.icon(
                       onPressed: _pickImage,
                       icon: const Icon(Icons.photo_library),
-                      label: Text(localizations?.selectImage ?? 'Select Image'),
+                      label: Text(localizations?.selectImage ?? 'Gallery'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.green.shade700,
+                        elevation: 2,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -440,30 +771,54 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: ElevatedButton.icon(
                       onPressed: _captureImage,
                       icon: const Icon(Icons.camera_alt),
-                      label: Text(localizations?.captureImage ?? 'Capture Image'),
+                      label: Text(localizations?.captureImage ?? 'Camera'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.green.shade700,
+                        elevation: 2,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            
+            // Detect disease button
+            Container(
+              margin: const EdgeInsets.all(16.0),
+              height: 54,
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _detectDisease,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  elevation: 3,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
+                    ? const SizedBox(
+                        height: 24,
+                        width: 24,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 3,
+                        ),
+                      )
                     : Text(
-                        localizations?.detectDisease ?? 'Detect Disease',
-                        style: const TextStyle(fontSize: 16),
+                        localizations?.detectDisease ?? 'Analyze Image',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
               ),
             ),
-            if (_detectionResult != null) _buildDetectionResult(),
+            
+            // Detection result
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 500),
+              child: _detectionResult != null ? _buildDetectionResult() : const SizedBox(),
+            ),
+            
             const SizedBox(height: 20),
           ],
         ),
@@ -474,47 +829,147 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showLanguageDialog(BuildContext context, LanguageProvider languageProvider) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(AppLocalizations.of(context)?.appTitle ?? 'Select Language'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: const Text('English'),
-              leading: Radio<Locale>(
-                value: const Locale('en'),
-                groupValue: languageProvider.locale,
-                onChanged: (Locale? value) {
-                  if (value != null) {
-                    languageProvider.setLocale(value);
-                    Navigator.of(ctx).pop();
-                  }
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.language, color: Colors.green),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    AppLocalizations.of(context)?.appTitle ?? 'Select Language',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              _buildLanguageOption(
+                title: 'English',
+                locale: const Locale('en'),
+                isSelected: languageProvider.locale == const Locale('en'),
+                onTap: () {
+                  languageProvider.setLocale(const Locale('en'));
+                  Navigator.of(ctx).pop();
                 },
               ),
-            ),
-            ListTile(
-              title: const Text('اردو'),
-              leading: Radio<Locale>(
-                value: const Locale('ur'),
-                groupValue: languageProvider.locale,
-                onChanged: (Locale? value) {
-                  if (value != null) {
-                    languageProvider.setLocale(value);
-                    Navigator.of(ctx).pop();
-                  }
+              const SizedBox(height: 8),
+              _buildLanguageOption(
+                title: 'اردو',
+                locale: const Locale('ur'),
+                isSelected: languageProvider.locale == const Locale('ur'),
+                onTap: () {
+                  languageProvider.setLocale(const Locale('ur'));
+                  Navigator.of(ctx).pop();
                 },
+              ),
+              const SizedBox(height: 20),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.grey.shade700,
+                ),
+                child: Text(AppLocalizations.of(context)?.cancel ?? 'Cancel'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildLanguageOption({
+    required String title,
+    required Locale locale,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.green.withOpacity(0.1) : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? Colors.green : Colors.grey.shade300,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              isSelected ? Icons.check_circle : Icons.circle_outlined,
+              color: isSelected ? Colors.green : Colors.grey,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              title,
+              style: TextStyle(
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected ? Colors.green.shade800 : Colors.black87,
               ),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-            },
-            child: Text(AppLocalizations.of(context)?.cancel ?? 'Cancel'),
+      ),
+    );
+  }
+
+  Widget _buildDrawerItem({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    bool isSelected = false,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: isSelected ? Colors.green.withOpacity(0.1) : Colors.transparent,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: ListTile(
+        leading: Icon(
+          icon,
+          color: isSelected ? Colors.green : Colors.grey.shade700,
+        ),
+        title: Text(
+          title,
+          style: TextStyle(
+            color: isSelected ? Colors.green : Colors.grey.shade800,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
-        ],
+        ),
+        onTap: onTap,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
@@ -523,30 +978,89 @@ class _HomeScreenState extends State<HomeScreen> {
     final localizations = AppLocalizations.of(context);
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(localizations?.joinCommunity ?? 'Join Community'),
-        content: const Text(
-          // Replace with a hardcoded string since the key doesn't exist
-          'You need to be logged in to access the community features. Would you like to login or register now?',
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.people, color: Colors.green),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      localizations?.joinCommunity ?? 'Join Community',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                // Replace with a hardcoded string since the key doesn't exist
+                'You need to be logged in to access the community features. Would you like to login or register now?',
+                style: TextStyle(color: Colors.grey.shade700),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                    },
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.grey.shade700,
+                    ),
+                    child: const Text('Cancel'),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const NewLoginScreen()),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    ),
+                    child: Text(localizations?.login ?? 'Login'),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-            },
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const LoginScreen()),
-              );
-            },
-            child: Text(localizations?.login ?? 'Login'),
-          ),
-        ],
       ),
     );
   }
