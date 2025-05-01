@@ -40,7 +40,7 @@ class AuthService {
       String username, String email, String password) async {
     try {
       final response = await http.post(
-        Uri.parse('${Constants.baseUrl}/auth/register/'),
+        Uri.parse('${Constants.baseUrl}/register/'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'username': username,

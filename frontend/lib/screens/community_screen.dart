@@ -17,7 +17,7 @@ import '../widgets/create_post_widget.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'login_screen.dart';
+import 'new_login_screen.dart';
 import 'package:flutter/foundation.dart';
 
 
@@ -48,6 +48,15 @@ class _CommunityScreenState extends State<CommunityScreen> {
   void initState() {
     super.initState();
     _fetchPosts();
+  }
+
+  void _navigateToLogin() {
+    // Ensure context is still valid before navigating
+    if (mounted) {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (ctx) => const NewLoginScreen()), // Now this should be found
+      );
+    }
   }
 
   // In your _fetchPosts method, update it to use the static method:
@@ -341,7 +350,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (ctx) => const LoginScreen()),
+                MaterialPageRoute(builder: (ctx) => const NewLoginScreen()),
               );
             },
             style: ElevatedButton.styleFrom(
@@ -362,36 +371,96 @@ class _CommunityScreenState extends State<CommunityScreen> {
     
     return Scaffold(
       appBar: AppBar(
-        title: Container(
-          height: 45,
-          decoration: BoxDecoration(
-            color: Colors.grey.shade200,
-            borderRadius: BorderRadius.circular(30),
-          ),
-          child: TextField(
-            decoration: InputDecoration(
-              hintText: 'Search in Community',
-              prefixIcon: const Icon(Icons.search),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(vertical: 10),
+        elevation: 0,
+        backgroundColor: Colors.green.shade50,
+        foregroundColor: Colors.green.shade800,
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.eco, color: Colors.green),
             ),
-            onChanged: (value) {
-              // Implement search functionality
-            },
-          ),
+            const SizedBox(width: 12),
+            const Text(
+              'Community',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {
-              // Notification functionality
-            },
+          // Search button
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.search, color: Colors.green),
+              onPressed: () {
+                // Implement search functionality
+              },
+            ),
           ),
-          IconButton(
-            icon: const Icon(Icons.more_vert),
-            onPressed: () {
-              // More options
-            },
+          // Notifications button
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.notifications_outlined, color: Colors.green),
+              onPressed: () {
+                // Notification functionality
+              },
+            ),
+          ),
+          // More options button
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.more_vert, color: Colors.green),
+              onPressed: () {
+                // More options
+              },
+            ),
           ),
         ],
       ),
@@ -419,51 +488,69 @@ class _CommunityScreenState extends State<CommunityScreen> {
   }
 
   Widget _buildFilterSection() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Filter by',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              TextButton(
-                onPressed: () {
-                  // Change filter functionality
-                },
-                child: Text(
-                  'Change',
-                  style: TextStyle(
-                    color: Colors.blue,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _buildFilterChip('Zucchini', Icons.eco, Colors.green),
-                const SizedBox(width: 8),
-                _buildFilterChip('Wheat', Icons.grass, Colors.amber),
-                const SizedBox(width: 8),
-                _buildFilterChip('Sugarcane', Icons.grass, Colors.green),
-                const SizedBox(width: 8),
-                _buildFilterChip('Strawberry', Icons.favorite, Colors.red),
-              ],
-            ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           ),
         ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Filter by',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: () {
+                    // Change filter functionality
+                  },
+                  icon: const Icon(Icons.filter_list, size: 18),
+                  label: const Text(
+                    'Change',
+                    style: TextStyle(
+                      color: Colors.green,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  children: [
+                    _buildFilterChip('Zucchini', Icons.eco, Colors.green),
+                    _buildFilterChip('Wheat', Icons.grass, Colors.amber),
+                    _buildFilterChip('Sugarcane', Icons.grass, Colors.green),
+                    _buildFilterChip('Strawberry', Icons.favorite, Colors.red),
+                    _buildFilterChip('Tomato', Icons.spa, Colors.red),
+                    _buildFilterChip('Potato', Icons.grass, Colors.brown),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -581,111 +668,258 @@ class _CommunityScreenState extends State<CommunityScreen> {
     final isCurrentUserPost = authProvider.username == username;
     
     return Card(
-      margin: const EdgeInsets.all(8),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 3,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Colors.green.shade100,
-              // Display profile image if available
-              child: profileImageUrl != null
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: CachedNetworkImage(
-                      imageUrl: profileImageUrl,
-                      width: 40,
-                      height: 40,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+          // User info and post header
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // User avatar with animation
+                Hero(
+                  tag: 'avatar-${post['id']}',
+                  child: CircleAvatar(
+                    radius: 24,
+                    backgroundColor: Colors.green.shade100,
+                    // Display profile image if available
+                    child: profileImageUrl != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(24),
+                          child: CachedNetworkImage(
+                            imageUrl: profileImageUrl,
+                            width: 48,
+                            height: 48,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                            errorWidget: (context, url, error) {
+                              print('Error loading profile image: $error for URL: $profileImageUrl');
+                              return Text(username.isNotEmpty ? username[0].toUpperCase() : '?', 
+                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                              );
+                            },
+                          ),
+                        )
+                      : Text(username.isNotEmpty ? username[0].toUpperCase() : '?', 
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Username and timestamp
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        username,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                       ),
-                      errorWidget: (context, url, error) {
-                        print('Error loading profile image: $error for URL: $profileImageUrl');
-                        return Text(username.isNotEmpty ? username[0].toUpperCase() : '?');
-                      },
-                    ),
-                  )
-                : Text(username.isNotEmpty ? username[0].toUpperCase() : '?'),
-            ),
-            title: Text(username), // Use the extracted username
-            subtitle: Text(
-              DateTime.tryParse(post['created_at'].toString()) != null
-                  ? DateTime.parse(post['created_at'].toString()).toString().substring(0, 16)
-                  : post['created_at'].toString(),
-            ),
-            trailing: isCurrentUserPost
-                ? IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () async {
-                      final confirm = await showDialog<bool>(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: const Text('Delete Post'),
-                          content: const Text('Are you sure you want to delete this post?'),
-                          actions: [
-                            TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
-                            TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Delete')),
+                      if (post['created_at'] != null)
+                        Row(
+                          children: [
+                            Icon(Icons.access_time, size: 12, color: Colors.grey[600]),
+                            const SizedBox(width: 4),
+                            Text(
+                              DateTime.tryParse(post['created_at'].toString()) != null
+                                ? DateTime.parse(post['created_at'].toString()).toString().substring(0, 16)
+                                : post['created_at'].toString(),
+                              style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                            ),
                           ],
                         ),
-                      );
-                      if (confirm == true) {
-                        await _deletePost(post['id']);
-                      }
-                    },
-                  )
-                : null,
+                    ],
+                  ),
+                ),
+                // More options button
+                isCurrentUserPost
+                  ? IconButton(
+                      icon: const Icon(Icons.more_vert),
+                      onPressed: () {
+                        showModalBottomSheet(
+                          context: context,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                          ),
+                          builder: (ctx) => Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const SizedBox(height: 8),
+                              Container(
+                                width: 40,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[300],
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              ListTile(
+                                leading: const Icon(Icons.delete, color: Colors.red),
+                                title: const Text('Delete Post'),
+                                onTap: () async {
+                                  Navigator.of(ctx).pop();
+                                  final confirm = await showDialog<bool>(
+                                    context: context,
+                                    builder: (ctx) => AlertDialog(
+                                      title: const Text('Delete Post'),
+                                      content: const Text('Are you sure you want to delete this post?'),
+                                      actions: [
+                                        TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+                                        TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Delete')),
+                                      ],
+                                    ),
+                                  );
+                                  if (confirm == true) {
+                                    await _deletePost(post['id']);
+                                  }
+                                },
+                              ),
+                              ListTile(
+                                leading: const Icon(Icons.edit, color: Colors.blue),
+                                title: const Text('Edit Post'),
+                                onTap: () {
+                                  Navigator.of(ctx).pop();
+                                  // Implement edit functionality
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Edit functionality coming soon!')),
+                                  );
+                                },
+                              ),
+                              const SizedBox(height: 8),
+                            ],
+                          ),
+                        );
+                      },
+                    )
+                  : IconButton(
+                      icon: const Icon(Icons.more_vert),
+                      onPressed: () {
+                        showModalBottomSheet(
+                          context: context,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                          ),
+                          builder: (ctx) => Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const SizedBox(height: 8),
+                              Container(
+                                width: 40,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[300],
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              ListTile(
+                                leading: const Icon(Icons.share, color: Colors.blue),
+                                title: const Text('Share'),
+                                onTap: () {
+                                  Navigator.of(ctx).pop();
+                                  // Implement share functionality
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Share functionality coming soon!')),
+                                  );
+                                },
+                              ),
+                              ListTile(
+                                leading: const Icon(Icons.report, color: Colors.orange),
+                                title: const Text('Report'),
+                                onTap: () {
+                                  Navigator.of(ctx).pop();
+                                  // Implement report functionality
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Report functionality coming soon!')),
+                                  );
+                                },
+                              ),
+                              const SizedBox(height: 8),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+              ],
+            ),
           ),
+          
+          // Post caption
           if (post['caption'] != null && post['caption'].toString().isNotEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: Text(post['caption'].toString()),
-            ),
-          // Display the image with better error handling using CachedNetworkImage
-          if (imageUrl.isNotEmpty)
-            Container(
-              height: 300,
-              width: double.infinity,
-              child: CachedNetworkImage(
-                imageUrl: imageUrl,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Center(
-                  child: CircularProgressIndicator(),
-                ),
-                errorWidget: (context, url, error) {
-                  print('Error loading image: $error');
-                  return Container(
-                    color: Colors.grey[300],
-                    child: const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.broken_image, size: 50),
-                          SizedBox(height: 8),
-                          Text('Image not available'),
-                        ],
-                      ),
-                    ),
-                  );
-                },
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Text(
+                post['caption'].toString(),
+                style: const TextStyle(fontSize: 15),
               ),
             ),
           
-          // Add interaction buttons (like, comment, react)
+          // Post image with animation
+          if (imageUrl.isNotEmpty)
+            Hero(
+              tag: 'post-image-${post['id']}',
+              child: Container(
+                height: 300,
+                width: double.infinity,
+                child: CachedNetworkImage(
+                  imageUrl: imageUrl,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => Container(
+                    height: 300,
+                    color: Colors.grey[200],
+                    child: const Center(child: CircularProgressIndicator()),
+                  ),
+                  errorWidget: (context, url, error) {
+                    print('Error loading image: $error');
+                    return Container(
+                      color: Colors.grey[200],
+                      child: const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                            SizedBox(height: 8),
+                            Text('Image not available', style: TextStyle(color: Colors.grey)),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          
+          // Like, comment, and react buttons
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                // Like button
+                // Like button with animation
                 TextButton.icon(
-                  icon: Icon(
-                    post['is_liked'] == true ? Icons.favorite : Icons.favorite_border,
-                    color: post['is_liked'] == true ? Colors.red : null,
+                  icon: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    transitionBuilder: (Widget child, Animation<double> animation) {
+                      return ScaleTransition(scale: animation, child: child);
+                    },
+                    child: Icon(
+                      post['is_liked'] == true ? Icons.favorite : Icons.favorite_border,
+                      color: post['is_liked'] == true ? Colors.red : null,
+                      key: ValueKey<bool>(post['is_liked'] == true),
+                    ),
                   ),
-                  label: Text('${post['like_count'] ?? 0}'),
+                  label: Text(
+                    '${post['like_count'] ?? 0}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   onPressed: () => _likePost(post['id']),
                 ),
                 
@@ -1115,17 +1349,32 @@ class _CommunityScreenState extends State<CommunityScreen> {
   
   // Add this helper method for filter chips
   Widget _buildFilterChip(String label, IconData icon, Color color) {
-    return Chip(
-      label: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: color, size: 18),
-          const SizedBox(width: 4),
-          Text(label),
-        ],
+    return Padding(
+      padding: const EdgeInsets.only(right: 4.0),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        child: Chip(
+          label: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: color, size: 18),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: const TextStyle(fontWeight: FontWeight.w500),
+              ),
+            ],
+          ),
+          backgroundColor: color.withOpacity(0.1),
+          elevation: 2,
+          shadowColor: Colors.black26,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: color.withOpacity(0.3)),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        ),
       ),
-      backgroundColor: color.withOpacity(0.1),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     );
   }
   

@@ -7,8 +7,8 @@ import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../providers/auth_provider.dart';
 import '../providers/language_provider.dart';
-import 'login_screen.dart';
-import 'register_screen.dart';
+import 'new_login_screen.dart';
+import 'new_register_screen.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -16,15 +16,7 @@ class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
   
   // Helper method to ensure image URLs are complete
-  String _getFullImageUrl(String imageUrl) {
-    if (imageUrl.startsWith('http')) {
-      return imageUrl;
-    } else {
-      // For relative URLs, construct the full URL
-      final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000';
-      return '$baseUrl$imageUrl';
-    }
-  }
+  
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +25,10 @@ class ProfileScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Leafy'),
+        title: const Text('Leafy', style: TextStyle(fontWeight: FontWeight.bold)),
+        elevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
         actions: [
           IconButton(
             icon: const Icon(Icons.more_vert),
@@ -44,58 +39,110 @@ class ProfileScreen extends StatelessWidget {
         ],
       ),
       body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (!isLoggedIn) _buildNotLoggedInView(context),
-            if (isLoggedIn) _buildLoggedInView(context, authProvider),
+            // Profile section with gradient background
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.green.shade50,
+                    Colors.white,
+                  ],
+                ),
+              ),
+              child: !isLoggedIn ?
+                _buildNotLoggedInView(context)
+              :
+                _buildLoggedInView(context, authProvider),
+            ),
             
-            const Divider(),
-            
-            _buildGrowTogetherSection(context),
-            
-            const Divider(),
-            
-            _buildFeedbackSection(context),
-            
-            const Divider(),
-            
-            _buildLanguageSection(context),
-            
-            const SizedBox(height: 20),
-            
-            _buildStoriesSection(context),
+            // Menu sections with subtle dividers
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 8),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
+                    child: Text(
+                      'Features',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                  
+                  // Feature cards
+                  _buildGrowTogetherSection(context),
+                  const SizedBox(height: 12),
+                  _buildFeedbackSection(context),
+                  const SizedBox(height: 12),
+                  _buildLanguageSection(context),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Stories section
+                  _buildStoriesSection(context),
+                ],
+              ),
+            ),
           ],
         ),
       ),
-    );
+    );}
+    
+      static _getFullImageUrl(String imageUrl) {
+         if (imageUrl.startsWith('http')) {
+      return imageUrl;
+    } else {
+      // For relative URLs, construct the full URL
+      final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000';
+      return '$baseUrl$imageUrl';
+      }
   }
 
   Widget _buildNotLoggedInView(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(24.0),
       child: Card(
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
                   Container(
-                    width: 80,
-                    height: 80,
+                    width: 90,
+                    height: 90,
                     decoration: BoxDecoration(
                       color: Colors.green.shade100,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(45),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.green.withOpacity(0.2),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
                     child: const Icon(
                       Icons.person_outline,
                       size: 50,
-                      color: Colors.orange,
+                      color: Colors.green,
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 20),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -103,42 +150,80 @@ class ProfileScreen extends StatelessWidget {
                         const Text(
                           'Your account',
                           style: TextStyle(
-                            fontSize: 18,
+                            fontSize: 22,
                             fontWeight: FontWeight.bold,
+                            color: Colors.black87,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        const Text('Join Leafy Community'),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Join Leafy Community',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
                       ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const LoginScreen()),
-                    );
-                  },
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: Theme.of(context).primaryColor),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const NewLoginScreen()),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).primaryColor,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: const Text(
+                        'Sign in',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
-                  child: Text(
-                    'Sign in',
-                    style: TextStyle(
-                      color: Theme.of(context).primaryColor,
-                      fontSize: 16,
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const NewRegisterScreen()),
+                        );
+                      },
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Theme.of(context).primaryColor),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: Text(
+                        'Register',
+                        style: TextStyle(
+                          color: Theme.of(context).primaryColor,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
             ],
           ),
@@ -248,273 +333,365 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildLoggedInView(BuildContext context, AuthProvider authProvider) {
+  //   String _getFullImageUrl(String imageUrl) {
+  //   if (imageUrl.startsWith('http')) {
+  //     return imageUrl;
+  //   } else {
+  //     // For relative URLs, construct the full URL
+  //     final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000';
+  //     return '$baseUrl$imageUrl';
+  //   }
+  // }
     return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Card(
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Profile header with avatar and user info
+          Row(
             children: [
-              Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => _showProfileImageOptions(context),
-                    child: Stack(
-                      children: [
-                        Container(
-                          width: 90,
-                          height: 90,
-                          decoration: BoxDecoration(
-                            color: Colors.green.shade100,
-                            borderRadius: BorderRadius.circular(45),
-                            border: Border.all(color: Colors.green.shade300, width: 2),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
+              GestureDetector(
+                onTap: () => _showProfileImageOptions(context),
+                child: Stack(
+                  children: [
+                    Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade100,
+                        borderRadius: BorderRadius.circular(50),
+                        border: Border.all(color: Colors.green.shade300, width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.green.withOpacity(0.2),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
                           ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(45),
-                            child: authProvider.profileImage != null
-                                ? CachedNetworkImage(
-                                    imageUrl: _getFullImageUrl(authProvider.profileImage!),
-                                    fit: BoxFit.cover,
-                                    placeholder: (context, url) => Center(
-                                      child: CircularProgressIndicator(),
-                                    ),
-                                    errorWidget: (context, url, error) {
-                                      print('Error loading profile image: $error');
-                                      return Center(
-                                        child: Text(
-                                          authProvider.username?[0].toUpperCase() ?? 'U',
-                                          style: TextStyle(fontSize: 36, color: Colors.green.shade700),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                      );
-                                    },
-                                  )
-                                : Center(
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(50),
+                        child: authProvider.profileImage != null
+                            ? CachedNetworkImage(
+                                imageUrl: ProfileScreen._getFullImageUrl(authProvider.profileImage!),
+                                fit: BoxFit.cover,
+                                placeholder: (context, url) => Center(
+                                  child: CircularProgressIndicator(
+                                    color: Colors.green.shade300,
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                                errorWidget: (context, url, error) {
+                                  print('Error loading profile image: $error');
+                                  return Center(
                                     child: Text(
                                       authProvider.username?[0].toUpperCase() ?? 'U',
-                                      style: TextStyle(fontSize: 36, color: Colors.green.shade700),
+                                      style: TextStyle(fontSize: 42, color: Colors.green.shade700, fontWeight: FontWeight.bold),
+                                      textAlign: TextAlign.center,
                                     ),
-                                  ),
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: Colors.green,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 2),
-                            ),
-                            child: const Icon(
-                              Icons.camera_alt,
-                              color: Colors.white,
-                              size: 16,
-                            ),
-                          ),
-                        ),
-                      ],
+                                  );
+                                },
+                              )
+                            : Center(
+                                child: Text(
+                                  authProvider.username?[0].toUpperCase() ?? 'U',
+                                  style: TextStyle(fontSize: 42, color: Colors.green.shade700, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if(authProvider.username != null && authProvider.username!.isNotEmpty)
-                          Text(
-                            authProvider.username!,
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
                             ),
-                          ),
-                        const SizedBox(height: 8),
-                        // Only show email if available
-                        if (authProvider.email != null && authProvider.email!.isNotEmpty)
-                          Text(
-                            authProvider.email!,
-                            style: TextStyle(color: Colors.grey.shade700),
-                          ),
-                      ],
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.camera_alt,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-              const SizedBox(height: 16),
-              ListTile(
-                leading: const Icon(Icons.settings),
-                title: const Text('Account Settings'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  // Navigate to settings
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.exit_to_app),
-                title: const Text('Sign Out'),
-                onTap: () {
-                  authProvider.logout();
-                },
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if(authProvider.username != null && authProvider.username!.isNotEmpty)
+                      Text(
+                        authProvider.username!,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    const SizedBox(height: 8),
+                    // Only show email if available
+                    if (authProvider.email != null && authProvider.email!.isNotEmpty)
+                      Text(
+                        authProvider.email!,
+                        style: TextStyle(fontSize: 16, color: Colors.grey.shade700),
+                      ),
+                  ],
+                ),
               ),
             ],
           ),
-        ),
+          
+          const SizedBox(height: 24),
+          
+          // Account options in a card with rounded corners
+          Card(
+            elevation: 0,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Column(
+              children: [
+                // Account settings option
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.settings, color: Colors.blue.shade700),
+                  ),
+                  title: const Text('Account Settings', style: TextStyle(fontWeight: FontWeight.w500)),
+                  trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                  onTap: () {
+                    // Navigate to settings
+                  },
+                ),
+                
+                Divider(height: 1, thickness: 1, indent: 70, endIndent: 20, color: Colors.grey.shade200),
+                
+                // Sign out option
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.exit_to_app, color: Colors.red.shade700),
+                  ),
+                  title: const Text('Sign Out', style: TextStyle(fontWeight: FontWeight.w500)),
+                  onTap: () {
+                    authProvider.logout();
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildGrowTogetherSection(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: Colors.green,
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.green.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Icon(
+                Icons.eco,
+                color: Colors.green.shade700,
+                size: 30,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Grow smart together!',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Share Leafy and help farmers solve their plant problems.',
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+                  ),
+                ],
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // Share app functionality
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green.shade50,
+                foregroundColor: Colors.green.shade700,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),
-                child: const Icon(
-                  Icons.eco,
-                  color: Colors.white,
-                  size: 30,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Grow smart together!',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Share Leafy and help farmers solve their plant problems.',
-                      style: TextStyle(fontSize: 14),
-                    ),
-                  ],
-                ),
+              child: const Text(
+                'Share Leafy',
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
-              TextButton(
-                onPressed: () {
-                  // Share app functionality
-                },
-                child: Text(
-                  'Share Leafy',
-                  style: TextStyle(
-                    color: Theme.of(context).primaryColor,
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
   Widget _buildFeedbackSection(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: Colors.green.shade100,
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: Colors.amber.shade50,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.amber.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Icon(
+                Icons.star_border,
+                color: Colors.amber.shade700,
+                size: 30,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'How is your experience with Leafy app?',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'We\'d love to hear your thoughts and suggestions.',
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+                  ),
+                ],
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // Feedback functionality
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.amber.shade50,
+                foregroundColor: Colors.amber.shade700,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),
-                child: const Icon(
-                  Icons.star_border,
-                  color: Colors.green,
-                  size: 30,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'How is your experience with Leafy app?',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'We\'d love to hear your thoughts and suggestions.',
-                      style: TextStyle(fontSize: 14),
-                    ),
-                  ],
-                ),
+              child: const Text(
+                'Feedback',
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
-              TextButton(
-                onPressed: () {
-                  // Feedback functionality
-                },
-                child: Text(
-                  'Give Feedback',
-                  style: TextStyle(
-                    color: Theme.of(context).primaryColor,
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
   Widget _buildLanguageSection(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Language Settings',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.purple.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.language,
+                    color: Colors.purple.shade700,
+                    size: 24,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              _buildLanguageOption(context, 'English', const Locale('en', '')),
-              const Divider(),
-              _buildLanguageOption(context, 'اردو (Urdu)', const Locale('ur', '')),
-            ],
-          ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Language Settings',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildLanguageOption(context, 'English', const Locale('en', '')),
+            Divider(height: 1, thickness: 1, color: Colors.grey.shade200),
+            _buildLanguageOption(context, 'اردو (Urdu)', const Locale('ur', '')),
+          ],
         ),
       ),
     );
@@ -529,7 +706,7 @@ class ProfileScreen extends StatelessWidget {
         languageProvider.setLocale(locale);
       },
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12.0),
+        padding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 8.0),
         child: Row(
           children: [
             Text(
@@ -537,13 +714,22 @@ class ProfileScreen extends StatelessWidget {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected ? Theme.of(context).primaryColor : Colors.black87,
               ),
             ),
             const Spacer(),
             if (isSelected)
-              Icon(
-                Icons.check_circle,
-                color: Theme.of(context).primaryColor,
+              Container(
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).primaryColor.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.check_circle,
+                  color: Theme.of(context).primaryColor,
+                  size: 22,
+                ),
               ),
           ],
         ),
@@ -552,74 +738,139 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildStoriesSection(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Stories picked up for you',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        backgroundColor: Colors.green,
-                        child: const Icon(Icons.eco, color: Colors.white),
-                      ),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'Leafy',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Pest Control: Managing Sucking Pests',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.asset(
-                      'assets/images/pests.jpg',
-                      height: 120,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          height: 120,
-                          color: Colors.grey.shade200,
-                          child: const Center(
-                            child: Icon(Icons.image_not_supported, size: 40),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.article_outlined,
+                  color: Colors.green.shade700,
+                  size: 20,
+                ),
               ),
-            ),
+              const SizedBox(width: 12),
+              const Text(
+                'Stories picked for you',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+                child: Image.asset(
+                  'assets/images/pests.jpg',
+                  height: 160,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      height: 160,
+                      color: Colors.grey.shade200,
+                      child: const Center(
+                        child: Icon(Icons.image_not_supported, size: 40, color: Colors.grey),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 16,
+                          backgroundColor: Colors.green,
+                          child: const Icon(Icons.eco, color: Colors.white, size: 16),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Leafy',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          '2 days ago',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Pest Control: Managing Sucking Pests',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Learn effective strategies to identify and manage sucking pests that can damage your crops.',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Icon(Icons.remove_red_eye_outlined, size: 16, color: Colors.grey.shade600),
+                        const SizedBox(width: 4),
+                        Text('245 views', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                        const Spacer(),
+                        OutlinedButton(
+                          onPressed: () {},
+                          style: OutlinedButton.styleFrom(
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            side: BorderSide(color: Theme.of(context).primaryColor),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          ),
+                          child: Text('Read More', style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 12)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

@@ -19,9 +19,10 @@ from django.utils import timezone
 # Add this import at the top of your views.py file
 from .models import CommunityPost, PostLike, Comment  # Changed PostComment to Comment
 from .serializers import UserProfileSerializer
-
+from rest_framework.permissions import AllowAny
 
 class RegisterView(APIView):
+    permission_classes = [AllowAny]
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
