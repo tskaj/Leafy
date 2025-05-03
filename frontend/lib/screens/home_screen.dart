@@ -66,10 +66,19 @@ class _HomeScreenState extends State<HomeScreen> {
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
 
     if (image != null) {
-      setState(() {
-        _selectedImage = image;
-        _detectionResult = null;
-      });
+      final isValidLeafImage = await _validateLeafImage(image);
+      if (isValidLeafImage) {
+        setState(() {
+          _selectedImage = image;
+          _detectionResult = null;
+        });
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(AppLocalizations.of(context)?.pleaseSelectLeafImage ?? 'Please select a leaf image')),
+          );
+        }
+      }
     }
   }
 
@@ -78,10 +87,83 @@ class _HomeScreenState extends State<HomeScreen> {
     final XFile? image = await picker.pickImage(source: ImageSource.camera);
 
     if (image != null) {
-      setState(() {
-        _selectedImage = image;
-        _detectionResult = null;
-      });
+      final isValidLeafImage = await _validateLeafImage(image);
+      if (isValidLeafImage) {
+        setState(() {
+          _selectedImage = image;
+          _detectionResult = null;
+        });
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(AppLocalizations.of(context)?.pleaseSelectLeafImage ?? 'Please select a leaf image')),
+          );
+        }
+      }
+    }
+  }
+  
+  Future<bool> _validateLeafImage(XFile image) async {
+    // Basic validation based on file extension
+    final validExtensions = ['jpg', 'jpeg', 'png'];
+    
+    // Handle both regular file paths and blob URLs
+    String fileExtension;
+    if (kIsWeb && image.path.startsWith('blob:')) {
+      // For web, we can't rely on the path for extension
+      // Instead, check the name property or use a default
+      final fileName = image.name?.toLowerCase() ?? '';
+      fileExtension = fileName.contains('.')
+          ? fileName.split('.').last
+          : 'jpg'; // Default to jpg if no extension found
+      print('Web image detected, using name for extension: $fileExtension');
+    } else {
+      // For mobile platforms, use the path
+      fileExtension = image.path.split('.').last.toLowerCase();
+    }
+    
+    if (!validExtensions.contains(fileExtension)) {
+      print('Invalid file extension: $fileExtension');
+      return false;
+    }
+    
+    // Size validation
+    try {
+      final fileBytes = await image.readAsBytes();
+      final fileSizeInMB = fileBytes.length / (1024 * 1024);
+      if (fileSizeInMB > 10) { // Limit to 10MB
+        print('File too large: ${fileSizeInMB.toStringAsFixed(2)} MB');
+        return false;
+      }
+    } catch (e) {
+      print('Error checking file size: $e');
+      // Continue with validation if size check fails
+    }
+    
+    // Use the same validation approach for both web and mobile
+    try {
+      final result = await DiseaseService.validateLeafImage(image);
+      
+      if (result['success']) {
+        // Check if it's a leaf with sufficient confidence
+        final isLeaf = result['isLeaf'] as bool;
+        final confidence = result['confidence'] as double;
+        
+        // Set a reasonable confidence threshold
+        final confidenceThreshold = 0.6; // 60% confidence threshold
+        
+        print('Leaf validation result: isLeaf=$isLeaf, confidence=$confidence');
+        return isLeaf && confidence >= confidenceThreshold;
+      } else {
+        // If API call failed, show the error but don't accept the image
+        print('Leaf validation API error: ${result['message']}');
+        // Don't default to accepting non-leaf images
+        return false;
+      }
+    } catch (e) {
+      // If there's an exception, don't accept the image
+      print('Error during leaf validation: $e');
+      return false;
     }
   }
 
@@ -1064,6 +1146,10 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+}
+
+extension on AppLocalizations? {
+  get pleaseSelectLeafImage => null;
 }
 
 // Add this extension method for string capitalization
