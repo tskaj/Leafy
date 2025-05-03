@@ -40,35 +40,36 @@ class DiseaseDetectionView(APIView):
         if image.size > 10 * 1024 * 1024:  # 10MB in bytes
             return Response({'error': 'Image size should be less than 10MB'}, status=status.HTTP_400_BAD_REQUEST)
         
-        # Save the uploaded image to a temporary file
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_file:
-            for chunk in image.chunks():
-                temp_file.write(chunk)
-            temp_file_path = temp_file.name
+        # First validate if the image contains a leaf
+        image.seek(0)  # Reset file pointer
+        is_leaf, confidence, success, message = validate_leaf_image(image)
+        
+        if not is_leaf or not success:
+            return Response({
+                'error': 'The uploaded image does not appear to contain a leaf',
+                'message': message
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # If leaf validation passes, proceed with disease classification
+        image.seek(0)  # Reset file pointer again
+        success, result_data, message = classify_disease(image)
+        
+        if not success:
+            return Response({'error': message}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            # Make prediction
-            result = model_manager.predict(temp_file_path, crop_type)
-            
             # Save detection to database
             detection = LeafImageDetection(
                 user=request.user,
                 image=image,
                 crop_type=crop_type,
-                prediction=result['prediction'],
-                confidence=max(result['probabilities'].values())
+                prediction=result_data['prediction'],
+                confidence=max(result_data['probabilities'].values())
             )
             detection.save()
             
-            # Delete the temporary file
-            os.unlink(temp_file_path)
-            
-            return Response(result, status=status.HTTP_200_OK)
+            return Response(result_data, status=status.HTTP_200_OK)
         except Exception as e:
-            # Delete the temporary file
-            if os.path.exists(temp_file_path):
-                os.unlink(temp_file_path)
-            
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class AnonymousDiseaseDetectionView(APIView):
@@ -90,35 +91,36 @@ class AnonymousDiseaseDetectionView(APIView):
         if image.size > 10 * 1024 * 1024:  # 10MB in bytes
             return Response({'error': 'Image size should be less than 10MB'}, status=status.HTTP_400_BAD_REQUEST)
         
-        # Save the uploaded image to a temporary file
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_file:
-            for chunk in image.chunks():
-                temp_file.write(chunk)
-            temp_file_path = temp_file.name
+        # First validate if the image contains a leaf
+        image.seek(0)  # Reset file pointer
+        is_leaf, confidence, success, message = validate_leaf_image(image)
+        
+        if not is_leaf or not success:
+            return Response({
+                'error': 'The uploaded image does not appear to contain a leaf',
+                'message': message
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # If leaf validation passes, proceed with disease classification
+        image.seek(0)  # Reset file pointer again
+        success, result_data, message = classify_disease(image)
+        
+        if not success:
+            return Response({'error': message}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            # Make prediction
-            result = model_manager.predict(temp_file_path, crop_type)
-            
             # Save detection to database (anonymous user)
             detection = LeafImageDetection(
                 user=None,  # Anonymous user
                 image=image,
                 crop_type=crop_type,
-                prediction=result['prediction'],
-                confidence=max(result['probabilities'].values())
+                prediction=result_data['prediction'],
+                confidence=max(result_data['probabilities'].values())
             )
             detection.save()
             
-            # Delete the temporary file
-            os.unlink(temp_file_path)
-            
-            return Response(result, status=status.HTTP_200_OK)
+            return Response(result_data, status=status.HTTP_200_OK)
         except Exception as e:
-            # Delete the temporary file
-            if os.path.exists(temp_file_path):
-                os.unlink(temp_file_path)
-            
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 

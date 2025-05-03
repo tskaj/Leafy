@@ -28,8 +28,8 @@ class DiseaseService {
     String token, 
     {String cropType = 'tomato'}
   ) async {
-    // Change from /api/detect/ to /predict/
-    final url = Uri.parse('$baseUrl/predict/');
+    // Use the classify-disease endpoint
+    final url = Uri.parse('$baseUrl/api/disease/classify-disease/');
     
     var request = http.MultipartRequest('POST', url);
     request.headers['Authorization'] = 'Bearer $token';
@@ -37,7 +37,7 @@ class DiseaseService {
     request.files.add(await http.MultipartFile.fromPath(
       'image', 
       imageFile.path,
-      contentType: MediaType('image', 'jpeg'),
+      contentType: MediaType('image', imageFile.path.endsWith('.png') ? 'png' : 'jpeg'),
     ));
     
     request.fields['crop_type'] = cropType;
@@ -46,9 +46,10 @@ class DiseaseService {
     var responseData = await response.stream.bytesToString();
     
     if (response.statusCode == 200) {
+      final jsonResponse = json.decode(responseData);
       return {
         'success': true,
-        'data': json.decode(responseData),
+        'data': jsonResponse['data'],
       };
     } else {
       return {
@@ -66,8 +67,8 @@ class DiseaseService {
     String token,
     {String cropType = 'tomato'}
   ) async {
-    // Change from /api/detect/ to /predict/
-    final url = Uri.parse('$baseUrl/predict/');
+    // Use the classify-disease endpoint
+    final url = Uri.parse('$baseUrl/api/disease/classify-disease/');
     
     var request = http.MultipartRequest('POST', url);
     request.headers['Authorization'] = 'Bearer $token';
@@ -85,9 +86,10 @@ class DiseaseService {
     var responseData = await response.stream.bytesToString();
     
     if (response.statusCode == 200) {
+      final jsonResponse = json.decode(responseData);
       return {
         'success': true,
-        'data': json.decode(responseData),
+        'data': jsonResponse['data'],
       };
     } else {
       return {
@@ -102,15 +104,15 @@ class DiseaseService {
     File imageFile,
     {String cropType = 'tomato'}
   ) async {
-    // Change from /api/detect/anonymous/ to /predict-anonymous/
-    final url = Uri.parse('$baseUrl/predict-anonymous/');
+    // Use the classify-disease endpoint
+    final url = Uri.parse('$baseUrl/api/disease/classify-disease/');
     
     var request = http.MultipartRequest('POST', url);
     
     request.files.add(await http.MultipartFile.fromPath(
       'image', 
       imageFile.path,
-      contentType: MediaType('image', 'jpeg'),
+      contentType: MediaType('image', imageFile.path.endsWith('.png') ? 'png' : 'jpeg'),
     ));
     
     request.fields['crop_type'] = cropType;
@@ -119,9 +121,10 @@ class DiseaseService {
     var responseData = await response.stream.bytesToString();
     
     if (response.statusCode == 200) {
+      final jsonResponse = json.decode(responseData);
       return {
         'success': true,
-        'data': json.decode(responseData),
+        'data': jsonResponse['data'],
       };
     } else {
       return {
@@ -136,8 +139,8 @@ class DiseaseService {
     Uint8List imageBytes,
     {String cropType = 'tomato'}
   ) async {
-    // Change from /api/detect/anonymous/ to /predict-anonymous/
-    final url = Uri.parse('$baseUrl/predict-anonymous/');
+    // Use the classify-disease endpoint
+    final url = Uri.parse('$baseUrl/api/disease/classify-disease/');
     
     var request = http.MultipartRequest('POST', url);
     
@@ -154,9 +157,10 @@ class DiseaseService {
     var responseData = await response.stream.bytesToString();
     
     if (response.statusCode == 200) {
+      final jsonResponse = json.decode(responseData);
       return {
         'success': true,
-        'data': json.decode(responseData),
+        'data': jsonResponse['data'],
       };
     } else {
       return {
