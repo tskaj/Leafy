@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'community',
     'disease_detection',
+    'weather',  # Added weather app
 ]
 
 

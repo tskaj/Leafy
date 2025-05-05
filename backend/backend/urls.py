@@ -20,6 +20,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/community/', include('community.urls')),
     path('api/disease/', include('disease_detection.urls')),
+    path('api/weather/', include('weather.urls')),
     
     # Authentication endpoints
     path('register/', RegisterView.as_view(), name='register'),

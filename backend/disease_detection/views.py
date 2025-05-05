@@ -177,6 +177,40 @@ def classify_plant_disease(request):
     success, result_data, message = classify_disease(image_file)
     
     if success:
+        # Try to fetch disease information from the database
+        from users.models import DiseaseInfo
+        
+        try:
+            # Get the predicted disease name
+            disease_name = result_data['prediction']
+            
+            # Try to find disease info in the database
+            disease_info = DiseaseInfo.objects.filter(disease_name=disease_name).first()
+            
+            if disease_info:
+                # Add disease info to the result data
+                result_data['disease_info'] = {
+                    'description': disease_info.description,
+                    'treatments': disease_info.treatment.split('\n') if disease_info.treatment else [],
+                    'prevention': disease_info.prevention.split('\n') if disease_info.prevention else []
+                }
+            else:
+                # No disease info found, add empty values
+                result_data['disease_info'] = {
+                    'description': 'No detailed information available for this disease.',
+                    'treatments': [],
+                    'prevention': []
+                }
+                print(f"No disease info found for: {disease_name}")
+        except Exception as e:
+            print(f"Error fetching disease info: {str(e)}")
+            # Don't fail the request if disease info can't be fetched
+            result_data['disease_info'] = {
+                'description': 'Unable to retrieve disease information.',
+                'treatments': [],
+                'prevention': []
+            }
+        
         return Response({
             'success': True,
             'data': result_data
