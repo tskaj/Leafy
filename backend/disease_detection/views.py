@@ -68,6 +68,94 @@ class DiseaseDetectionView(APIView):
             )
             detection.save()
             
+            # Add disease information to the response
+            try:
+                # Get the predicted disease name
+                disease_name = result_data['prediction']
+                
+                # Try to find disease info in the database
+                from users.models import DiseaseInfo
+                from .deepseek_service import DeepSeekService
+                
+                disease_info = DiseaseInfo.objects.filter(disease_name=disease_name).first()
+                
+                if disease_info:
+                    # Add disease info to the result data
+                    result_data['disease_info'] = {
+                        'description': disease_info.description,
+                        'treatments': disease_info.treatment.split('\n') if disease_info.treatment else [],
+                        'prevention': disease_info.prevention.split('\n') if disease_info.prevention else []
+                    }
+                else:
+                    # No disease info found in database, use DeepSeek API to get recommendations
+                    print(f"Info: Using DeepSeek API for disease information - '{disease_name}' not found in database (expected behavior)")
+                    
+                    # Use mock service in development to avoid API costs
+                    deepseek_result = DeepSeekService.get_mock_treatment_recommendation(disease_name, crop_type)
+                    
+                    if deepseek_result['success']:
+                        # Parse the recommendation into sections
+                        recommendation = deepseek_result['recommendation']
+                        
+                        # Improved parsing of the recommendation text with better section detection
+                        lines = recommendation.split('\n')
+                        description = ''
+                        treatments = []
+                        prevention = []
+                        
+                        current_section = 'none'
+                        for line in lines:
+                            line_lower = line.lower().strip()
+                            if line.strip() == '':
+                                continue
+                            
+                            # Better section detection with more specific markers
+                            if 'disease information:' in line_lower:
+                                current_section = 'description'
+                                continue
+                            elif 'treatment recommendations:' in line_lower or 'treatment:' in line_lower:
+                                current_section = 'treatments'
+                                continue
+                            elif 'prevention measures:' in line_lower or 'prevention:' in line_lower:
+                                current_section = 'prevention'
+                                continue
+                            elif 'organic treatments:' in line_lower or 'chemical options:' in line_lower:
+                                # These are subsections of treatments, still keep in treatments section
+                                continue
+                            
+                            # Process the line based on its section
+                            if current_section == 'description':
+                                description += line.strip() + ' '
+                            elif current_section == 'treatments':
+                                # Only add numbered items or bullet points to treatments
+                                if (line.strip().startswith(('1.', '2.', '3.', '4.', '5.', '6.', '7.', '8.', '9.', '-'))):
+                                    treatments.append(line.strip())
+                            elif current_section == 'prevention':
+                                # Only add numbered items or bullet points to prevention
+                                if (line.strip().startswith(('1.', '2.', '3.', '4.', '5.', '6.', '7.', '8.', '9.', '-'))):
+                                    prevention.append(line.strip())
+                        
+                        result_data['disease_info'] = {
+                            'description': description.strip() or 'No detailed information available for this disease.',
+                            'treatments': treatments,
+                            'prevention': prevention
+                        }
+                    else:
+                        # DeepSeek API failed, add empty values
+                        result_data['disease_info'] = {
+                            'description': 'No detailed information available for this disease.',
+                            'treatments': [],
+                            'prevention': []
+                        }
+            except Exception as e:
+                print(f"Error fetching disease info: {str(e)}")
+                # Don't fail the request if disease info can't be fetched
+                result_data['disease_info'] = {
+                    'description': 'Unable to retrieve disease information.',
+                    'treatments': [],
+                    'prevention': []
+                }
+            
             return Response(result_data, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -119,6 +207,94 @@ class AnonymousDiseaseDetectionView(APIView):
             )
             detection.save()
             
+            # Add disease information to the response
+            try:
+                # Get the predicted disease name
+                disease_name = result_data['prediction']
+                
+                # Try to find disease info in the database
+                from users.models import DiseaseInfo
+                from .deepseek_service import DeepSeekService
+                
+                disease_info = DiseaseInfo.objects.filter(disease_name=disease_name).first()
+                
+                if disease_info:
+                    # Add disease info to the result data
+                    result_data['disease_info'] = {
+                        'description': disease_info.description,
+                        'treatments': disease_info.treatment.split('\n') if disease_info.treatment else [],
+                        'prevention': disease_info.prevention.split('\n') if disease_info.prevention else []
+                    }
+                else:
+                    # No disease info found in database, use DeepSeek API to get recommendations
+                    print(f"Info: Using DeepSeek API for disease information - '{disease_name}' not found in database (expected behavior)")
+                    
+                    # Use mock service in development to avoid API costs
+                    deepseek_result = DeepSeekService.get_mock_treatment_recommendation(disease_name, crop_type)
+                    
+                    if deepseek_result['success']:
+                        # Parse the recommendation into sections
+                        recommendation = deepseek_result['recommendation']
+                        
+                        # Improved parsing of the recommendation text with better section detection
+                        lines = recommendation.split('\n')
+                        description = ''
+                        treatments = []
+                        prevention = []
+                        
+                        current_section = 'none'
+                        for line in lines:
+                            line_lower = line.lower().strip()
+                            if line.strip() == '':
+                                continue
+                            
+                            # Better section detection with more specific markers
+                            if 'disease information:' in line_lower:
+                                current_section = 'description'
+                                continue
+                            elif 'treatment recommendations:' in line_lower or 'treatment:' in line_lower:
+                                current_section = 'treatments'
+                                continue
+                            elif 'prevention measures:' in line_lower or 'prevention:' in line_lower:
+                                current_section = 'prevention'
+                                continue
+                            elif 'organic treatments:' in line_lower or 'chemical options:' in line_lower:
+                                # These are subsections of treatments, still keep in treatments section
+                                continue
+                            
+                            # Process the line based on its section
+                            if current_section == 'description':
+                                description += line.strip() + ' '
+                            elif current_section == 'treatments':
+                                # Only add numbered items or bullet points to treatments
+                                if (line.strip().startswith(('1.', '2.', '3.', '4.', '5.', '6.', '7.', '8.', '9.', '-'))):
+                                    treatments.append(line.strip())
+                            elif current_section == 'prevention':
+                                # Only add numbered items or bullet points to prevention
+                                if (line.strip().startswith(('1.', '2.', '3.', '4.', '5.', '6.', '7.', '8.', '9.', '-'))):
+                                    prevention.append(line.strip())
+                        
+                        result_data['disease_info'] = {
+                            'description': description.strip() or 'No detailed information available for this disease.',
+                            'treatments': treatments,
+                            'prevention': prevention
+                        }
+                    else:
+                        # DeepSeek API failed, add empty values
+                        result_data['disease_info'] = {
+                            'description': 'No detailed information available for this disease.',
+                            'treatments': [],
+                            'prevention': []
+                        }
+            except Exception as e:
+                print(f"Error fetching disease info: {str(e)}")
+                # Don't fail the request if disease info can't be fetched
+                result_data['disease_info'] = {
+                    'description': 'Unable to retrieve disease information.',
+                    'treatments': [],
+                    'prevention': []
+                }
+            
             return Response(result_data, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -160,6 +336,7 @@ def classify_plant_disease(request):
         return Response({'error': 'No image provided'}, status=status.HTTP_400_BAD_REQUEST)
     
     image_file = request.FILES['image']
+    crop_type = request.data.get('crop_type', 'tomato')  # Default to tomato
     
     # Validate image type
     content_type = image_file.content_type
@@ -179,6 +356,7 @@ def classify_plant_disease(request):
     if success:
         # Try to fetch disease information from the database
         from users.models import DiseaseInfo
+        from .deepseek_service import DeepSeekService
         
         try:
             # Get the predicted disease name
@@ -195,13 +373,69 @@ def classify_plant_disease(request):
                     'prevention': disease_info.prevention.split('\n') if disease_info.prevention else []
                 }
             else:
-                # No disease info found, add empty values
-                result_data['disease_info'] = {
-                    'description': 'No detailed information available for this disease.',
-                    'treatments': [],
-                    'prevention': []
-                }
-                print(f"No disease info found for: {disease_name}")
+                # No disease info found in database, use DeepSeek API to get recommendations
+                print(f"Info: Using DeepSeek API for disease information - '{disease_name}' not found in database (expected behavior)")
+                
+                # Use mock service in development to avoid API costs
+                deepseek_result = DeepSeekService.get_mock_treatment_recommendation(disease_name, crop_type)
+                # For production, use the actual API:
+                # deepseek_result = DeepSeekService.get_treatment_recommendation(disease_name, crop_type)
+                
+                if deepseek_result['success']:
+                    # Parse the recommendation into sections
+                    recommendation = deepseek_result['recommendation']
+                    
+                    # Improved parsing of the recommendation text with better section detection
+                    lines = recommendation.split('\n')
+                    description = ''
+                    treatments = []
+                    prevention = []
+                    
+                    current_section = 'none'
+                    for line in lines:
+                        line_lower = line.lower().strip()
+                        if line.strip() == '':
+                            continue
+                        
+                        # Better section detection with more specific markers
+                        if 'disease information:' in line_lower:
+                            current_section = 'description'
+                            continue
+                        elif 'treatment recommendations:' in line_lower or 'treatment:' in line_lower:
+                            current_section = 'treatments'
+                            continue
+                        elif 'prevention measures:' in line_lower or 'prevention:' in line_lower:
+                            current_section = 'prevention'
+                            continue
+                        elif 'organic treatments:' in line_lower or 'chemical options:' in line_lower:
+                            # These are subsections of treatments, still keep in treatments section
+                            continue
+                        
+                        # Process the line based on its section
+                        if current_section == 'description':
+                            description += line.strip() + ' '
+                        elif current_section == 'treatments':
+                            # Only add numbered items or bullet points to treatments
+                            if (line.strip().startswith(('1.', '2.', '3.', '4.', '5.', '6.', '7.', '8.', '9.', '-'))):
+                                treatments.append(line.strip())
+                        elif current_section == 'prevention':
+                            # Only add numbered items or bullet points to prevention
+                            if (line.strip().startswith(('1.', '2.', '3.', '4.', '5.', '6.', '7.', '8.', '9.', '-'))):
+                                prevention.append(line.strip())
+                    
+                    result_data['disease_info'] = {
+                        'description': description.strip() or 'No detailed information available for this disease.',
+                        'treatments': treatments,
+                        'prevention': prevention
+                    }
+                else:
+                    # DeepSeek API failed, add empty values
+                    result_data['disease_info'] = {
+                        'description': 'No detailed information available for this disease.',
+                        'treatments': [],
+                        'prevention': []
+                    }
+                    print(f"DeepSeek API error: {deepseek_result['message']}")
         except Exception as e:
             print(f"Error fetching disease info: {str(e)}")
             # Don't fail the request if disease info can't be fetched

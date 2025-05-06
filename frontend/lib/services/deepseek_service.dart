@@ -21,7 +21,7 @@ class DeepSeekService {
           "Keep the response informative but concise (150-200 words).";
 
       // You'll need to add your DeepSeek API key to the .env file
-      final apiKey = dotenv.env['DEEPSEEK_API_KEY'] ?? 'sk-2837438af8dd4e8ebe6afdc43166215e';
+      final apiKey = dotenv.env['DEEPSEEK_API_KEY'] ?? '#';
       if (apiKey.isEmpty) {
         return {
           'success': false,
@@ -77,44 +77,59 @@ class DeepSeekService {
     // Simulate network delay
     await Future.delayed(const Duration(seconds: 1));
     
-    // Return a mock response based on the disease name
+    // Return a mock response based on the disease name with clear section markers
     String recommendation;
     
     if (diseaseName.toLowerCase().contains('healthy')) {
       recommendation = "Your $cropType plant appears healthy! Continue with regular care:\n\n"
+          "Disease Information:\n"
+          "Your plant is showing signs of good health with no visible disease symptoms.\n\n"
+          "Treatment Recommendations:\n"
           "1. Water regularly but avoid overwatering\n"
           "2. Ensure adequate sunlight exposure\n"
           "3. Apply balanced fertilizer according to plant needs\n"
           "4. Monitor for early signs of pests or diseases\n\n"
-          "Preventative measures: Maintain good air circulation, avoid wetting leaves when watering, and remove any dead or decaying plant material promptly.";
+          "Prevention Measures:\n"
+          "1. Maintain good air circulation around plants\n"
+          "2. Avoid wetting leaves when watering\n"
+          "3. Remove any dead or decaying plant material promptly\n"
+          "4. Inspect plants regularly for early detection of issues";
     } else if (diseaseName.toLowerCase().contains('blight')) {
       recommendation = "Treatment for $diseaseName on $cropType:\n\n"
-          "1. Disease explanation: Blight is a fungal disease that causes rapid browning and death of plant tissues.\n\n"
-          "2. Organic treatments:\n"
-          "   - Remove and destroy infected plant parts\n"
-          "   - Apply copper-based fungicides or neem oil\n"
-          "   - Improve air circulation around plants\n\n"
-          "3. Chemical options:\n"
-          "   - Chlorothalonil or mancozeb-based fungicides\n"
-          "   - Follow label instructions carefully\n\n"
-          "4. Prevention:\n"
-          "   - Use disease-resistant varieties\n"
-          "   - Rotate crops annually\n"
-          "   - Avoid overhead watering";
+          "Disease Information:\n"
+          "Blight is a fungal disease that causes rapid browning and death of plant tissues. It typically appears as dark lesions on leaves that can quickly spread throughout the plant.\n\n"
+          "Treatment Recommendations:\n"
+          "Organic treatments:\n"
+          "1. Remove and destroy infected plant parts immediately\n"
+          "2. Apply copper-based fungicides or neem oil as directed\n"
+          "3. Improve air circulation around plants\n\n"
+          "Chemical options:\n"
+          "1. Apply chlorothalonil or mancozeb-based fungicides\n"
+          "2. Follow label instructions carefully\n"
+          "3. Rotate fungicide types to prevent resistance\n\n"
+          "Prevention Measures:\n"
+          "1. Use disease-resistant varieties when planting\n"
+          "2. Rotate crops annually to break disease cycles\n"
+          "3. Avoid overhead watering to keep foliage dry\n"
+          "4. Space plants properly for good air circulation";
     } else {
       recommendation = "Treatment for $diseaseName on $cropType:\n\n"
-          "1. Disease explanation: This condition affects plant health by damaging leaves and potentially reducing yield.\n\n"
-          "2. Organic treatments:\n"
-          "   - Remove infected plant parts immediately\n"
-          "   - Apply organic fungicides like neem oil or copper soap\n"
-          "   - Introduce beneficial insects if appropriate\n\n"
-          "3. Chemical options:\n"
-          "   - Targeted fungicides or pesticides may be necessary for severe cases\n"
-          "   - Always follow product instructions and safety guidelines\n\n"
-          "4. Prevention:\n"
-          "   - Maintain proper plant spacing\n"
-          "   - Water at the base of plants\n"
-          "   - Practice crop rotation";
+          "Disease Information:\n"
+          "This condition affects plant health by damaging leaves and potentially reducing yield. Early detection and treatment are essential for managing this disease effectively.\n\n"
+          "Treatment Recommendations:\n"
+          "Organic treatments:\n"
+          "1. Remove infected plant parts immediately\n"
+          "2. Apply organic fungicides like neem oil or copper soap\n"
+          "3. Introduce beneficial insects if appropriate\n\n"
+          "Chemical options:\n"
+          "1. Targeted fungicides or pesticides may be necessary for severe cases\n"
+          "2. Always follow product instructions and safety guidelines\n"
+          "3. Apply treatments during appropriate weather conditions\n\n"
+          "Prevention Measures:\n"
+          "1. Maintain proper plant spacing for good airflow\n"
+          "2. Water at the base of plants to keep foliage dry\n"
+          "3. Practice crop rotation to prevent disease buildup\n"
+          "4. Use disease-resistant varieties when available";
     }
     
     return {
