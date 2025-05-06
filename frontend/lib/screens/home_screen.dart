@@ -9,6 +9,7 @@ import '../providers/language_provider.dart';
 import '../services/disease_service.dart';
 import 'new_login_screen.dart';
 import 'community_screen.dart';
+import 'disease_detail_screen.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 class HomeScreen extends StatefulWidget {
@@ -312,6 +313,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final prediction = _detectionResult!['prediction'] as String;
     final probabilities = _detectionResult!['probabilities'] as Map<String, dynamic>;
+    final diseaseInfo = _detectionResult!['disease_info'] as Map<String, dynamic>?;
 
     // Sort probabilities by value in descending order
     final sortedProbabilities = probabilities.entries.toList()
@@ -323,8 +325,8 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
+            color: Colors.green.withOpacity(0.08),
+            blurRadius: 15,
             offset: const Offset(0, 4),
           ),
         ],
@@ -332,38 +334,63 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Card(
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+        color: Colors.white,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header with gradient background
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.green.shade50, Colors.green.shade100],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+              ),
+              child: Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.green.withOpacity(0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
-                    child: const Icon(Icons.check_circle, color: Colors.green),
+                    child: Icon(Icons.eco, color: Colors.green.shade700, size: 24),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          localizations?.prediction ?? "Prediction",
+                          localizations?.detectionResults ?? "Detection Results",
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                            color: Colors.green.shade800,
+                            letterSpacing: 0.5,
                           ),
                         ),
+                        const SizedBox(height: 4),
                         Text(
                           prediction,
-                          style: const TextStyle(
-                            fontSize: 20,
+                          style: TextStyle(
+                            fontSize: 22,
                             fontWeight: FontWeight.bold,
+                            color: Colors.green.shade800,
+                            letterSpacing: 0.5,
                           ),
                         ),
                       ],
@@ -371,83 +398,223 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
-              const Divider(height: 30),
-              Text(
-                localizations?.probabilities ?? "Probabilities",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[800],
-                ),
-              ),
-              const SizedBox(height: 16),
-              ...sortedProbabilities.map((entry) {
-                final percentage = (entry.value * 100).toStringAsFixed(1);
-                final isTopPrediction = entry.key == prediction;
-                
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              entry.key,
-                              style: TextStyle(
-                                fontWeight: isTopPrediction ? FontWeight.bold : FontWeight.normal,
-                                color: isTopPrediction ? Colors.green[800] : Colors.grey[800],
-                              ),
-                            ),
+            ),
+            
+            // Disease info preview
+            if (diseaseInfo != null)
+              Container(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Disease Information',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue.shade800,
                           ),
-                          Text(
-                            '$percentage%',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: isTopPrediction ? Colors.green[800] : Colors.grey[800],
-                            ),
-                          ),
-                        ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.blue.shade100, width: 1),
                       ),
-                      const SizedBox(height: 6),
-                      Stack(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            height: 8,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              color: Colors.grey[200],
-                              borderRadius: BorderRadius.circular(4),
+                          Text(
+                            diseaseInfo['description'].toString().length > 120
+                                ? '${diseaseInfo['description'].toString().substring(0, 120)}...'
+                                : diseaseInfo['description'].toString(),
+                            style: TextStyle(
+                              fontSize: 14,
+                              height: 1.4,
+                              color: Colors.grey.shade800,
                             ),
                           ),
-                          FractionallySizedBox(
-                            widthFactor: entry.value,
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 500),
-                              height: 8,
+                          const SizedBox(height: 12),
+                          GestureDetector(
+                            onTap: () {
+                              // Navigate to disease detail screen
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => DiseaseDetailScreen(
+                                    diseaseName: prediction,
+                                    cropType: _selectedCrop,
+                                    diseaseInfo: diseaseInfo,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                               decoration: BoxDecoration(
-                                color: isTopPrediction ? Colors.green : Colors.blue[400],
-                                borderRadius: BorderRadius.circular(4),
-                                boxShadow: isTopPrediction ? [
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Colors.blue.shade300),
+                                boxShadow: [
                                   BoxShadow(
-                                    color: Colors.green.withOpacity(0.4),
+                                    color: Colors.blue.withOpacity(0.1),
                                     blurRadius: 4,
                                     offset: const Offset(0, 2),
                                   ),
-                                ] : null,
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'View Details',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blue.shade700,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Icon(Icons.arrow_forward, size: 16, color: Colors.blue.shade700),
+                                ],
                               ),
                             ),
                           ),
                         ],
                       ),
+                    ),
+                  ],
+                ),
+              ),
+            
+            // Probabilities section
+            Container(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.bar_chart, color: Colors.green.shade700, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        localizations?.probabilities ?? "Probabilities",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green.shade800,
+                        ),
+                      ),
                     ],
                   ),
-                );
-              }).toList(),
-            ],
-          ),
+                  const SizedBox(height: 16),
+                  ...sortedProbabilities.take(5).map((entry) {
+                    final percentage = (entry.value * 100).toStringAsFixed(1);
+                    final isTopPrediction = entry.key == prediction;
+                    
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: isTopPrediction ? Colors.green.shade50 : Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: isTopPrediction ? Colors.green.shade200 : Colors.grey.shade200,
+                        ),
+                        boxShadow: isTopPrediction ? [
+                          BoxShadow(
+                            color: Colors.green.withOpacity(0.1),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ] : null,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  entry.key,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: isTopPrediction ? FontWeight.bold : FontWeight.normal,
+                                    color: isTopPrediction ? Colors.green[800] : Colors.grey[800],
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: isTopPrediction ? Colors.green.shade100 : Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  '$percentage%',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: isTopPrediction ? Colors.green[800] : Colors.grey[800],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Stack(
+                            children: [
+                              Container(
+                                height: 6,
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[200],
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                              ),
+                              FractionallySizedBox(
+                                widthFactor: entry.value,
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 500),
+                                  height: 6,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: isTopPrediction 
+                                          ? [Colors.green.shade300, Colors.green.shade500]
+                                          : [Colors.blue.shade300, Colors.blue.shade500],
+                                      begin: Alignment.centerLeft,
+                                      end: Alignment.centerRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(3),
+                                    boxShadow: isTopPrediction ? [
+                                      BoxShadow(
+                                        color: Colors.green.withOpacity(0.3),
+                                        blurRadius: 3,
+                                        offset: const Offset(0, 1),
+                                      ),
+                                    ] : null,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -1150,6 +1317,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
 extension on AppLocalizations? {
   get pleaseSelectLeafImage => null;
+  
+  get detectionResults => null;
 }
 
 // Add this extension method for string capitalization
