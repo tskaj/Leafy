@@ -8,7 +8,7 @@ import os
 from datetime import datetime, timedelta
 
 # OpenWeather API configuration
-OPENWEATHER_API_KEY = os.environ.get('OPENWEATHER_API_KEY', '')
+OPENWEATHER_API_KEY = os.environ.get('OPENWEATHER_API_KEY', '6268477fd958d098c4fd75f9e8456597')
 OPENWEATHER_BASE_URL = 'https://api.openweathermap.org/data/2.5'
 
 @api_view(['GET'])
