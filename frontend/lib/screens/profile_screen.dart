@@ -59,8 +59,7 @@ class ProfileScreen extends StatelessWidget {
                 _buildNotLoggedInView(context)
               :
                 _buildLoggedInView(context, authProvider),
-            ),
-            
+            ),           
             // Menu sections with subtle dividers
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),

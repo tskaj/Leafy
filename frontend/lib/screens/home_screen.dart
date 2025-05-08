@@ -276,45 +276,17 @@ Future<void> _detectDisease() async {
     });
   }
 
-  Widget _buildWeatherWidget() {
+   Widget _buildWeatherWidget() {
     if (_loadingWeather) {
       return Container(
         margin: const EdgeInsets.all(16),
         height: 200,
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 15,
-              offset: const Offset(0, 5),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(24),
+          color: Colors.grey.shade200,
         ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(
-                height: 40,
-                width: 40,
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.green.shade400),
-                  strokeWidth: 3,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Loading weather data...',
-                style: TextStyle(
-                  color: Colors.grey.shade600,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 15,
-                ),
-              ),
-            ],
-          ),
+        child: const Center(
+          child: CircularProgressIndicator(),
         ),
       );
     }
@@ -322,79 +294,36 @@ Future<void> _detectDisease() async {
     if (_currentWeather == null) {
       return Container(
         margin: const EdgeInsets.all(16),
-        padding: const EdgeInsets.all(20),
+        height: 200,
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 15,
-              offset: const Offset(0, 5),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(24),
+          color: Colors.grey.shade200,
         ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(20),
-            onTap: _loadWeatherData,
-            child: Column(
-              children: [
-                Icon(
-                  Icons.cloud_off_rounded,
-                  size: 56, 
-                  color: Colors.grey.shade400,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Weather data unavailable',
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade700,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.refresh_rounded,
-                        size: 16,
-                        color: Colors.grey.shade700,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Tap to retry',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.grey.shade700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.cloud_off, size: 48, color: Colors.grey),
+              const SizedBox(height: 16),
+              Text(
+                AppLocalizations.of(context)?.weatherDataUnavailable ?? 'Weather data unavailable',
+                style: TextStyle(color: Colors.grey.shade700),
+              ),
+              TextButton(
+                onPressed: _loadWeatherData,
+                child: Text(AppLocalizations.of(context)?.retry ?? 'Retry'),
+              ),
+            ],
           ),
         ),
       );
     }
 
-    // Current weather data
+    // Extract weather data
     final temp = _currentWeather!['temperature'];
-    final condition = _currentWeather!['weather_condition'];
-    final description = _currentWeather!['weather_description'];
-    final iconCode = _currentWeather!['weather_icon'];
-    final humidity = _currentWeather!['humidity'];
+    final condition = _currentWeather!['weather_condition'] ?? 'unknown';
+    final description = _currentWeather!['weather_description'] ?? 'Unknown';
+    final iconCode = _currentWeather!['weather_icon'] ?? '01d';
     final windSpeed = _currentWeather!['wind_speed'];
     final windDirection = _currentWeather!['wind_direction'];
     final locationName = _currentWeather!['location_name'];
@@ -408,27 +337,22 @@ Future<void> _detectDisease() async {
     // Get spray recommendations
     final hasOptimalTimes = _sprayRecommendations != null && 
                            _sprayRecommendations!.containsKey('optimal_times') && 
+                           _sprayRecommendations!['optimal_times'] != null &&
                            (_sprayRecommendations!['optimal_times'] as List).isNotEmpty;
 
-    // Determine if it's day or night based on icon code
-    final isNight = iconCode.contains('n');
-    
     return GestureDetector(
       onTap: () {
-        // Navigate to weather details screen when tapped
-        if (_currentWeather != null) {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => WeatherDetailsScreen(
-                currentWeather: _currentWeather!,
-                weatherForecast: _weatherForecast,
-                sprayRecommendations: _sprayRecommendations,
-                weatherUnits: _weatherUnits,
-                refreshCallback: _loadWeatherData,
-              ),
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (ctx) => WeatherDetailsScreen(
+              currentWeather: _currentWeather!,
+              weatherForecast: _weatherForecast,
+              sprayRecommendations: _sprayRecommendations,
+              weatherUnits: _weatherUnits,
+              refreshCallback: _loadWeatherData,
             ),
-          );
-        }
+          ),
+        );
       },
       child: Container(
         margin: const EdgeInsets.all(16),
@@ -437,203 +361,114 @@ Future<void> _detectDisease() async {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: _getWeatherGradient(condition),
+            colors: [Colors.blue.shade500, Colors.blue.shade700],
           ),
           boxShadow: [
             BoxShadow(
-              color: _getWeatherShadowColor(condition),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-              spreadRadius: 2,
+              color: Colors.blue.shade200.withOpacity(0.5),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: Stack(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Background weather effects
-            _buildWeatherEffects(condition, isNight),
-            
-            // Content
-            Column(
-              children: [
-                // Current weather section
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(6),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.2),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Icon(
-                                        Icons.location_on_rounded,
-                                        size: 14,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        '$locationName, $country',
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.white,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      formattedTemp,
-                                      style: const TextStyle(
-                                        fontSize: 48,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                        height: 0.9,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.15),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    description.toString().toUpperCase(),
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          _buildWeatherIcon(iconCode),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
                           children: [
-                            _buildWeatherInfoItem(
-                              Icons.water_drop_rounded,
-                              '$humidity%',
-                              'Humidity',
-                            ),
-                            _buildDivider(),
-                            _buildWeatherInfoItem(
-                              Icons.air_rounded,
-                              '$windSpeed ${_weatherUnits == 'imperial' ? 'mph' : 'm/s'}',
-                              'Wind',
-                            ),
-                            _buildDivider(),
-                            _buildWeatherInfoItem(
-                              Icons.explore_rounded,
-                              windDirectionText,
-                              'Direction',
+                            const Icon(Icons.location_on, color: Colors.white, size: 16),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                '$locationName, $country',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                
-                // Spray recommendation preview
-                if (hasOptimalTimes)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
-                      borderRadius: const BorderRadius.only(
-                        bottomLeft: Radius.circular(24),
-                        bottomRight: Radius.circular(24),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.schedule_rounded,
+                        const SizedBox(height: 8),
+                        Text(
+                          formattedTemp,
+                          style: const TextStyle(
                             color: Colors.white,
-                            size: 20,
+                            fontSize: 36,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Optimal Spray Time',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Best time to spray: ${_sprayRecommendations!['optimal_times'][0]}',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.white.withOpacity(0.9),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.arrow_forward_ios_rounded,
+                        Text(
+                          description,
+                          style: const TextStyle(
                             color: Colors.white,
-                            size: 14,
+                            fontSize: 16,
                           ),
                         ),
                       ],
                     ),
                   ),
-              ],
+                  Image.network(
+                    iconUrl,
+                    width: 80,
+                    height: 80,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Icon(
+                        Icons.cloud,
+                        color: Colors.white,
+                        size: 60,
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(24),
+                  bottomRight: Radius.circular(24),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.air, color: Colors.white, size: 16),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${windSpeed.toStringAsFixed(1)} ${_weatherUnits == 'imperial' ? 'mph' : 'm/s'} $windDirectionText',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ],
+                  ),
+                  if (hasOptimalTimes)
+                    Row(
+                      children: [
+                        const Icon(Icons.schedule, color: Colors.white, size: 16),
+                        const SizedBox(width: 4),
+                        Text(
+                          AppLocalizations.of(context)?.optimalSprayTime ?? 'Optimal spray time available',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
             ),
           ],
         ),
@@ -1697,6 +1532,30 @@ Container(
       ),
     );
   }
+  // Helper method to extract optimal spray time text
+  String _getOptimalSprayTimeText(Map<String, dynamic>? sprayRecommendations) {
+    if (sprayRecommendations == null || 
+        !sprayRecommendations.containsKey('optimal_times') || 
+        sprayRecommendations['optimal_times'] == null ||
+        (sprayRecommendations['optimal_times'] as List).isEmpty) {
+      return 'No optimal spray times available';
+    }
+    
+    final optimalTime = sprayRecommendations['optimal_times'][0] as Map<String, dynamic>;
+    final formattedTime = optimalTime['formatted_time'] as String? ?? 'Unknown time';
+    
+    // Handle reasons as either String or List
+    String reasonsText;
+    if (optimalTime['reasons'] is List) {
+      reasonsText = (optimalTime['reasons'] as List).join(', ');
+    } else if (optimalTime['reasons'] is String) {
+      reasonsText = optimalTime['reasons'] as String;
+    } else {
+      reasonsText = 'Favorable conditions expected';
+    }
+    
+    return '$formattedTime - $reasonsText';
+  }
 }
 
 
@@ -1704,6 +1563,12 @@ extension on AppLocalizations? {
   get pleaseSelectLeafImage => null;
   
   get detectionResults => null;
+  
+  get weatherDataUnavailable => null;
+  
+  get optimalSprayTime => null;
+  
+  get retry => null;
 }
 
 // Extension method for string capitalization

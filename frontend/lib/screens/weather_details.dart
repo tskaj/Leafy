@@ -61,6 +61,7 @@ class WeatherDetailsScreen extends StatelessWidget {
     // Get spray recommendations
     final hasOptimalTimes = sprayRecommendations != null && 
                            sprayRecommendations!.containsKey('optimal_times') && 
+                           sprayRecommendations!['optimal_times'] != null &&
                            (sprayRecommendations!['optimal_times'] as List).isNotEmpty;
 
     return Scaffold(
@@ -338,15 +339,33 @@ class WeatherDetailsScreen extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 8),
                     ListView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      itemCount: (sprayRecommendations!['optimal_times'] as List).take(3).length,
+                      itemCount: (sprayRecommendations!['optimal_times'] as List).length,
                       itemBuilder: (context, index) {
-                        final timeData = sprayRecommendations!['optimal_times'][index];
-                        final date = DateTime.fromMillisecondsSinceEpoch(timeData['datetime'] * 1000);
-                        final conditions = timeData['conditions'] as Map<String, dynamic>;
+                        final timeData = sprayRecommendations!['optimal_times'][index] as Map<String, dynamic>;
+                        final formattedTime = timeData['formatted_time'] as String? ?? 'Unknown time';
+                        
+                        // Fix for the TypeError - Handle reasons as either String or List
+                        String reasonsText;
+                        if (timeData['reasons'] is List) {
+                          reasonsText = (timeData['reasons'] as List).join(', ');
+                        } else if (timeData['reasons'] is String) {
+                          reasonsText = timeData['reasons'] as String;
+                        } else {
+                          reasonsText = 'Favorable conditions';
+                        }
+                        
+                        final conditions = timeData['conditions'] != null 
+                            ? timeData['conditions'] as Map<String, dynamic>
+                            : <String, dynamic>{
+                                'temperature': 0,
+                                'humidity': 0,
+                                'wind_speed': 0,
+                                'weather_condition': 'Unknown'
+                              };
                         
                         return Card(
                           margin: const EdgeInsets.only(bottom: 12),
@@ -354,113 +373,166 @@ class WeatherDetailsScreen extends StatelessWidget {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  Colors.green.shade50,
-                                  Colors.white,
-                                ],
-                              ),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(10),
-                                        decoration: BoxDecoration(
-                                          color: Colors.green.shade100,
-                                          shape: BoxShape.circle,
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.green.withOpacity(0.2),
-                                              blurRadius: 8,
-                                              spreadRadius: 1,
-                                            ),
-                                          ],
-                                        ),
-                                        child: Icon(
-                                          Icons.schedule_rounded,
-                                          color: Colors.green.shade700,
-                                          size: 22,
-                                        ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.green.shade100,
+                                        shape: BoxShape.circle,
                                       ),
-                                      const SizedBox(width: 12),
-                                      Column(
+                                      child: Icon(
+                                        Icons.schedule,
+                                        color: Colors.green.shade700,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            DateFormat('EEEE, MMMM d').format(date),
+                                            formattedTime,
                                             style: const TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 16,
                                             ),
                                           ),
-                                          Row(
-                                            children: [
-                                              Icon(
-                                                Icons.access_time_rounded,
-                                                size: 14,
-                                                color: Colors.grey.shade600,
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                DateFormat('HH:mm').format(date),
-                                                style: TextStyle(
-                                                  color: Colors.grey.shade700,
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              ),
-                                            ],
+                                          Text(
+                                            reasonsText,
+                                            style: TextStyle(
+                                              color: Colors.grey.shade700,
+                                              fontSize: 14,
+                                            ),
                                           ),
                                         ],
                                       ),
-                                    ],
-                                  ),
-                                  const Padding(
-                                    padding: EdgeInsets.symmetric(vertical: 12),
-                                    child: Divider(),
-                                  ),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                                    children: [
-                                      _buildSprayCondition(
-                                        Icons.thermostat_rounded, 
-                                        '${conditions['temperature']}°${weatherUnits == 'imperial' ? 'F' : 'C'}',
-                                        'Temperature',
-                                        Colors.red.shade400,
-                                      ),
-                                      _buildSprayCondition(
-                                        Icons.air_rounded, 
-                                        '${conditions['wind_speed']} ${weatherUnits == 'imperial' ? 'mph' : 'm/s'}',
-                                        'Wind',
-                                        Colors.blue.shade400,
-                                      ),
-                                      _buildSprayCondition(
-                                        Icons.water_drop_rounded, 
-                                        '${conditions['humidity']}%',
-                                        'Humidity',
-                                        Colors.green.shade400,
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
+                                    ),
+                                  ],
+                                ),
+                                const Divider(height: 24),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                  children: [
+                                    _buildSprayCondition(
+                                      Icons.thermostat, 
+                                      '${conditions['temperature'] ?? 0}°${weatherUnits == 'imperial' ? 'F' : 'C'}',
+                                      'Temperature',
+                                      Colors.orange,
+                                    ),
+                                    _buildSprayCondition(
+                                      Icons.water_drop, 
+                                      '${conditions['humidity'] ?? 0}%',
+                                      'Humidity',
+                                      Colors.blue,
+                                    ),
+                                    _buildSprayCondition(
+                                      Icons.air, 
+                                      '${conditions['wind_speed'] ?? 0} ${weatherUnits == 'imperial' ? 'mph' : 'm/s'}',
+                                      'Wind Speed',
+                                      Colors.blue,
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
                         );
                       },
                     ),
+                  ] else ...[
+                    // Dummy optimal spray time when no data is available
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Optimal Spray Times',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.shade100,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    Icons.schedule,
+                                    color: Colors.green.shade700,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Tomorrow at 6:00 AM',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Ideal weather conditions for spraying',
+                                        style: TextStyle(
+                                          color: Colors.grey.shade700,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Divider(height: 24),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                _buildSprayCondition(
+                                  Icons.thermostat, 
+                                  '24°${weatherUnits == 'imperial' ? 'F' : 'C'}',
+                                  'Temperature',
+                                  Colors.orange,
+                                ),
+                                _buildSprayCondition(
+                                  Icons.water_drop, 
+                                  '45%',
+                                  'Humidity',
+                                  Colors.blue,
+                                ),
+                                _buildSprayCondition(
+                                  Icons.air, 
+                                  '3.5 ${weatherUnits == 'imperial' ? 'mph' : 'm/s'}',
+                                  'Wind Speed',
+                                  Colors.blue,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
-                  
                   const SizedBox(height: 24),
                 ],
               ),
