@@ -6,7 +6,7 @@ from PIL import Image
 from io import BytesIO
 
 # Initialize the Roboflow client with API key and URL for disease classification
-ROBOFLOW_API_KEY = "xo6mQ5uBlOugUjY9G6ei"
+ROBOFLOW_API_KEY = os.getenv("ROBOFLOW_API_KEY")
 ROBOFLOW_API_URL = "https://serverless.roboflow.com"
 DISEASE_CLIENT = InferenceHTTPClient(api_url=ROBOFLOW_API_URL, api_key=ROBOFLOW_API_KEY)
 
