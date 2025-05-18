@@ -4,7 +4,7 @@ from django.conf import settings
 from inference_sdk import InferenceHTTPClient
 
 # Initialize the Roboflow client with API key and URL
-ROBOFLOW_API_KEY = "xo6mQ5uBlOugUjY9G6ei"
+ROBOFLOW_API_KEY = os.getenv("ROBOFLOW_API_KEY")
 ROBOFLOW_API_URL = "https://serverless.roboflow.com"
 CLIENT = InferenceHTTPClient(api_url=ROBOFLOW_API_URL, api_key=ROBOFLOW_API_KEY)
 
