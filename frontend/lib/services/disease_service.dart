@@ -312,7 +312,7 @@ class DiseaseService {
       
       // Roboflow API endpoint and key - using serverless endpoint as per documentation
       final roboflowApiUrl = 'https://serverless.roboflow.com/my-first-project-mxrml/1';
-      final apiKey = dotenv.env['ROBOFLOW_API_KEY'] ?? 'xo6mQ5uBlOugUjY9G6ei';
+      final apiKey = dotenv.env['ROBOFLOW_API_KEY'];
       
       // Prepare the image data
       Uint8List imageBytes;

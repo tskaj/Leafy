@@ -56,7 +56,29 @@ class AuthProvider with ChangeNotifier {
     
     // Save the updated profile image to SharedPreferences if we have a token
     if (_token != null && _refreshToken != null) {
-      _saveAuthData(_token!, _refreshToken!, profileImage: _profileImage, email: _email);
+      _saveAuthData(_token!, _refreshToken!, profileImage: _profileImage, email: _email, username: _username);
+    }
+    
+    notifyListeners();
+  }
+  
+  void updateUsername(String username) {
+    _username = username;
+    
+    // Save the updated username to SharedPreferences if we have a token
+    if (_token != null && _refreshToken != null) {
+      _saveAuthData(_token!, _refreshToken!, profileImage: _profileImage, email: _email, username: _username);
+    }
+    
+    notifyListeners();
+  }
+  
+  void updateEmail(String email) {
+    _email = email;
+    
+    // Save the updated email to SharedPreferences if we have a token
+    if (_token != null && _refreshToken != null) {
+      _saveAuthData(_token!, _refreshToken!, profileImage: _profileImage, email: _email, username: _username);
     }
     
     notifyListeners();
@@ -70,6 +92,7 @@ class AuthProvider with ChangeNotifier {
       'Content-Type': 'application/json',
     };
   }
+
 
   Future<void> _saveAuthData(String token, String refreshToken, {String? profileImage, String? email, String? username}) async {
     final prefs = await SharedPreferences.getInstance();

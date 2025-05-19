@@ -11,6 +11,7 @@ import 'new_login_screen.dart';
 import 'new_register_screen.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:cached_network_image/cached_network_image.dart';
+import 'account_settings_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -475,7 +476,10 @@ class ProfileScreen extends StatelessWidget {
                   title: const Text('Account Settings', style: TextStyle(fontWeight: FontWeight.w500)),
                   trailing: const Icon(Icons.chevron_right, color: Colors.grey),
                   onTap: () {
-                    // Navigate to settings
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const AccountSettingsScreen()),
+                    );
                   },
                 ),
                 
@@ -555,8 +559,19 @@ class ProfileScreen extends StatelessWidget {
               ),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 // Share app functionality
+                try {
+                  // This would typically use a share package like share_plus
+                  // For now, we'll show a snackbar indicating sharing
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Sharing Leafy with your friends!')),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error sharing app: ${e.toString()}')),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green.shade50,
@@ -629,7 +644,8 @@ class ProfileScreen extends StatelessWidget {
             ),
             ElevatedButton(
               onPressed: () {
-                // Feedback functionality
+                // Show feedback dialog
+                _showFeedbackDialog(context);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.amber.shade50,
@@ -732,6 +748,207 @@ class ProfileScreen extends StatelessWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  // Method to show feedback dialog
+  void _showFeedbackDialog(BuildContext context) {
+    final TextEditingController feedbackController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Send Feedback'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('We appreciate your feedback to improve Leafy!'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: feedbackController,
+              decoration: const InputDecoration(
+                hintText: 'Enter your feedback here',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 5,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              // Submit feedback
+              if (feedbackController.text.isNotEmpty) {
+                // In a real app, this would send the feedback to a backend
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Thank you for your feedback!')),
+                );
+              }
+              Navigator.of(ctx).pop();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Submit'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Method to show article details
+  void _showArticleDetails(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.9,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (_, scrollController) => SingleChildScrollView(
+          controller: scrollController,
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Article header
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor: Colors.green,
+                      child: const Icon(Icons.eco, color: Colors.white),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Leafy',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        Text(
+                          '2 days ago',
+                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.of(ctx).pop(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Article title
+                const Text(
+                  'Pest Control: Managing Sucking Pests',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 24,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Article image
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.asset(
+                    'assets/images/pests.jpg',
+                    height: 200,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        height: 200,
+                        color: Colors.grey.shade200,
+                        child: const Center(
+                          child: Icon(Icons.image_not_supported, size: 40, color: Colors.grey),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 20),
+                // Article content
+                const Text(
+                  'Sucking pests are a common problem for many crops. These pests feed by piercing plant tissues and extracting sap, which can lead to stunted growth, yellowing, and even plant death if left unchecked.',
+                  style: TextStyle(fontSize: 16, height: 1.5),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Common sucking pests include:',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, height: 1.5),
+                ),
+                const SizedBox(height: 8),
+                _buildBulletPoint('Aphids - Small, soft-bodied insects that cluster on new growth'),
+                _buildBulletPoint('Whiteflies - Tiny, white flying insects that feed on the undersides of leaves'),
+                _buildBulletPoint('Spider mites - Microscopic pests that cause stippling on leaves'),
+                _buildBulletPoint('Leafhoppers - Wedge-shaped insects that hop when disturbed'),
+                const SizedBox(height: 12),
+                const Text(
+                  'Management strategies:',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, height: 1.5),
+                ),
+                const SizedBox(height: 8),
+                _buildBulletPoint('Regular monitoring of plants for early detection'),
+                _buildBulletPoint('Introducing beneficial insects like ladybugs and lacewings'),
+                _buildBulletPoint('Using insecticidal soaps for mild infestations'),
+                _buildBulletPoint('Applying neem oil as a natural deterrent'),
+                _buildBulletPoint('Maintaining plant health through proper watering and fertilization'),
+                const SizedBox(height: 20),
+                const Text(
+                  'Remember that prevention is always better than cure. Keep your garden clean, remove affected leaves promptly, and maintain biodiversity to keep pest populations in check naturally.',
+                  style: TextStyle(fontSize: 16, fontStyle: FontStyle.italic, height: 1.5),
+                ),
+                const SizedBox(height: 30),
+                // Article footer
+                Row(
+                  children: [
+                    Icon(Icons.thumb_up_outlined, size: 20, color: Colors.grey.shade600),
+                    const SizedBox(width: 4),
+                    Text('42 likes', style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
+                    const SizedBox(width: 16),
+                    Icon(Icons.comment_outlined, size: 20, color: Colors.grey.shade600),
+                    const SizedBox(width: 4),
+                    Text('8 comments', style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Helper method to build bullet points
+  Widget _buildBulletPoint(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 8.0, bottom: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('• ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 16, height: 1.3),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -853,7 +1070,9 @@ class ProfileScreen extends StatelessWidget {
                         Text('245 views', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                         const Spacer(),
                         OutlinedButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            _showArticleDetails(context);
+                          },
                           style: OutlinedButton.styleFrom(
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                             side: BorderSide(color: Theme.of(context).primaryColor),

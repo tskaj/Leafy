@@ -30,7 +30,10 @@ class CommunityScreen extends StatefulWidget {
 
 class _CommunityScreenState extends State<CommunityScreen> {
   List<dynamic> _posts = [];
+  List<dynamic> _filteredPosts = [];
   bool _isLoading = true;
+  final TextEditingController _searchController = TextEditingController();
+  bool _isSearching = false;
 
   // Helper method to ensure image URLs are complete
   String _getFullImageUrl(String? imageUrl) {
@@ -48,6 +51,51 @@ class _CommunityScreenState extends State<CommunityScreen> {
   void initState() {
     super.initState();
     _fetchPosts();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+  
+  void _onSearchChanged() {
+    _performSearch(_searchController.text);
+  }
+  
+  Future<void> _performSearch(String query) async {
+    if (query.isEmpty) {
+      setState(() {
+        _filteredPosts = _posts;
+        _isSearching = false;
+      });
+      return;
+    }
+    
+    setState(() {
+      _isSearching = true;
+    });
+    
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final results = await CommunityService.searchPosts(query, authProvider.token);
+      
+      if (mounted) {
+        setState(() {
+          _filteredPosts = results;
+          _isSearching = false;
+        });
+      }
+    } catch (error) {
+      print('Error searching posts: $error');
+      if (mounted) {
+        setState(() {
+          _isSearching = false;
+        });
+      }
+    }
   }
 
   void _navigateToLogin() {
@@ -86,6 +134,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
         print('[DEBUG] _fetchPosts: Widget is mounted. Updating state.'); // DEBUG
         setState(() {
           _posts = posts;
+          _filteredPosts = posts;
           _isLoading = false;
         });
         print('[DEBUG] _fetchPosts: State updated successfully.'); // DEBUG
@@ -115,6 +164,11 @@ class _CommunityScreenState extends State<CommunityScreen> {
         print('[DEBUG] _loadPosts: Widget is mounted. Updating state.'); // DEBUG
         setState(() {
           _posts = posts;
+          _filteredPosts = posts;
+          // If there's an active search, filter the posts
+          if (_searchController.text.isNotEmpty) {
+            _performSearch(_searchController.text);
+          }
         });
         print('[DEBUG] _loadPosts: State updated successfully.'); // DEBUG
       } else {
@@ -398,71 +452,6 @@ class _CommunityScreenState extends State<CommunityScreen> {
             ),
           ],
         ),
-        actions: [
-          // Search button
-          Container(
-            margin: const EdgeInsets.only(right: 8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.search, color: Colors.green),
-              onPressed: () {
-                // Implement search functionality
-              },
-            ),
-          ),
-          // Notifications button
-          Container(
-            margin: const EdgeInsets.only(right: 8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.notifications_outlined, color: Colors.green),
-              onPressed: () {
-                // Notification functionality
-              },
-            ),
-          ),
-          // More options button
-          Container(
-            margin: const EdgeInsets.only(right: 8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.more_vert, color: Colors.green),
-              onPressed: () {
-                // More options
-              },
-            ),
-          ),
-        ],
       ),
       body: !isLoggedIn
           ? _buildLoginPrompt()
@@ -470,7 +459,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
               ? const Center(child: CircularProgressIndicator())
               : Column(
                   children: [
-                    _buildFilterSection(),
+                    _buildSearchSection(),
                     Expanded(
                       child: _posts.isEmpty
                           ? _buildEmptyState()
@@ -487,7 +476,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
     );
   }
 
-  Widget _buildFilterSection() {
+  Widget _buildSearchSection() {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
@@ -505,50 +494,45 @@ class _CommunityScreenState extends State<CommunityScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Filter by',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-                TextButton.icon(
-                  onPressed: () {
-                    // Change filter functionality
-                  },
-                  icon: const Icon(Icons.filter_list, size: 18),
-                  label: const Text(
-                    'Change',
-                    style: TextStyle(
-                      color: Colors.green,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                child: Row(
-                  children: [
-                    _buildFilterChip('Zucchini', Icons.eco, Colors.green),
-                    _buildFilterChip('Wheat', Icons.grass, Colors.amber),
-                    _buildFilterChip('Sugarcane', Icons.grass, Colors.green),
-                    _buildFilterChip('Strawberry', Icons.favorite, Colors.red),
-                    _buildFilterChip('Tomato', Icons.spa, Colors.red),
-                    _buildFilterChip('Potato', Icons.grass, Colors.brown),
-                  ],
-                ),
+            const Text(
+              'Search Community',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
               ),
             ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search posts or users...',
+                prefixIcon: const Icon(Icons.search, color: Colors.green),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                        },
+                      )
+                    : null,
+                filled: true,
+                fillColor: Colors.grey.shade100,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(vertical: 0),
+              ),
+              onSubmitted: (value) {
+                _performSearch(value);
+              },
+            ),
+            if (_isSearching)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8.0),
+                child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              ),
           ],
         ),
       ),
@@ -606,27 +590,48 @@ class _CommunityScreenState extends State<CommunityScreen> {
           );
         }
       },
-      child: ListView.builder(
-        physics: const BouncingScrollPhysics(),
-        itemCount: _posts.length,
-        itemBuilder: (ctx, index) {
-          final post = _posts[index];
-          return AnimationConfiguration.staggeredList(
-            position: index,
-            duration: const Duration(milliseconds: 375),
-            child: SlideAnimation(
-              verticalOffset: 50.0,
-              child: FadeInAnimation(
-                child: _buildPostCard(post),
+      child: _filteredPosts.isEmpty && _searchController.text.isNotEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.search_off, size: 80, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No results found for "${_searchController.text}"',
+                    style: const TextStyle(fontSize: 18, color: Colors.grey),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      _searchController.clear();
+                    },
+                    icon: const Icon(Icons.clear),
+                    label: const Text('Clear Search'),
+                  ),
+                ],
               ),
+            )
+          : ListView.builder(
+              physics: const BouncingScrollPhysics(),
+              itemCount: _filteredPosts.length,
+              itemBuilder: (ctx, index) {
+                final post = _filteredPosts[index];
+                return AnimationConfiguration.staggeredList(
+                  position: index,
+                  duration: const Duration(milliseconds: 375),
+                  child: SlideAnimation(
+                    verticalOffset: 50.0,
+                    child: FadeInAnimation(
+                      child: _buildPostCard(post),
+                    ),
+                  ),
+                );
+              },
             ),
-          );
-        },
-      ),
     );
   }
-
-  // Update the _buildPostCard method to better handle image display and add delete functionality
   Widget _buildPostCard(dynamic post) {
     // Get the full image URL using helper method
     String imageUrl = '';
@@ -897,37 +902,44 @@ class _CommunityScreenState extends State<CommunityScreen> {
               ),
             ),
           
-          // Like, comment, and react buttons
+          // Post actions
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Like button with animation
-                TextButton.icon(
-                  icon: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    transitionBuilder: (Widget child, Animation<double> animation) {
-                      return ScaleTransition(scale: animation, child: child);
-                    },
-                    child: Icon(
-                      post['is_liked'] == true ? Icons.favorite : Icons.favorite_border,
-                      color: post['is_liked'] == true ? Colors.red : null,
-                      key: ValueKey<bool>(post['is_liked'] == true),
+                // Like button
+                Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        post['is_liked'] == true ? Icons.favorite : Icons.favorite_border,
+                        color: post['is_liked'] == true ? Colors.red : Colors.grey,
+                      ),
+                      onPressed: () => _likePost(post['id']),
                     ),
-                  ),
-                  label: Text(
-                    '${post['like_count'] ?? 0}',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  onPressed: () => _likePost(post['id']),
+                    Text(
+                      '${post['like_count'] ?? 0}',
+                      style: TextStyle(
+                        color: post['is_liked'] == true ? Colors.red : Colors.grey,
+                      ),
+                    ),
+                  ],
                 ),
                 
-                // Comment button
-                TextButton.icon(
-                  onPressed: () => _showComments(post),
-                  icon: const Icon(Icons.comment),
-                  label: Text('${(post['comments'] as List?)?.length ?? 0}'),
+                // Comments button
+                GestureDetector(
+                  onTap: () => _showComments(post),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.chat_bubble_outline, color: Colors.grey),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${post['comment_count'] ?? 0}',
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                    ],
+                  ),
                 ),
                 
                 // React button (emoji)
@@ -1019,21 +1031,209 @@ class _CommunityScreenState extends State<CommunityScreen> {
       ),
     );
   }
+  // Add this method to create a comment on a post
+  Future<void> _createComment(int postId, String content) async {
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final token = authProvider.token;
+      if (token == null) return;
 
-  // Implement the _likePost method
+      final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000';
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/community/posts/$postId/comments/'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'content': content}),
+      );
+
+      print('Create comment response: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Comment added successfully')),
+        );
+        // Refresh posts to show updated comment count
+        _loadPosts();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to add comment: ${response.body}')),
+        );
+      }
+    } catch (error) {
+      print('Error creating comment: $error');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${error.toString()}')),
+      );
+    }
+  }
+
+  // Add this method to create a reply to a comment
+  Future<void> _createReply(int commentId, String content) async {
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final token = authProvider.token;
+      if (token == null) return;
+
+      final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000';
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/community/comments/$commentId/reply/'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'content': content}),
+      );
+
+      print('Create reply response: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Reply added successfully')),
+        );
+        // Refresh posts to show updated comment/reply
+        _loadPosts();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to add reply: ${response.body}')),
+        );
+      }
+    } catch (error) {
+      print('Error creating reply: $error');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${error.toString()}')),
+      );
+    }
+  }
+
+  // Add this method to like/unlike a comment
+  Future<void> _likeComment(int commentId) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    if (!authProvider.isAuth) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please login to like comments')),
+      );
+      return;
+    }
+
+    final token = authProvider.token;
+    if (token == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Authentication error. Please log in again.')),
+      );
+      return;
+    }
+
+    try {
+      final result = await CommunityService.likeComment(commentId, token);
+      if (result['success']) {
+        // Refresh posts to show updated like count
+        _fetchPosts();
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result['message'])),
+          );
+        }
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${error.toString()}')),
+        );
+      }
+    }
+  }
+
+
+  // Add this method to handle liking a reply
+  Future<void> _likeReply(int replyId) async {
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      if (!authProvider.isAuth) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please login to like replies')),
+        );
+        return;
+      }
+
+      final token = authProvider.token;
+      if (token == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Authentication error. Please log in again.')),
+        );
+        return;
+      }
+
+      final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000';
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/community/replies/$replyId/like/'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      print('Like reply response: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // Refresh posts to update like status
+        _fetchPosts();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to like reply: ${response.body}')),
+        );
+      }
+    } catch (error) {
+      print('Error liking reply: $error');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${error.toString()}')),
+      );
+    }
+  }
+  // Add this method to like/unlike a post
   Future<void> _likePost(int postId) async {
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final token = authProvider.token;
       if (token == null) return;
-      
-      final result = await CommunityService.likePost(postId, token);
-      
-      if (result['success']) {
-        await _fetchPosts(); // Refresh posts to update like status
+
+      final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000';
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/community/posts/$postId/like/'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      print('Like post response: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // Update the UI to reflect the like/unlike
+        setState(() {
+          final postIndex = _posts.indexWhere((p) => p['id'] == postId);
+          if (postIndex != -1) {
+            final post = _posts[postIndex];
+            final isLiked = post['is_liked'] == true;
+            
+            // Toggle like status
+            post['is_liked'] = !isLiked;
+            
+            // Update like count
+            if (isLiked) {
+              post['like_count'] = (post['like_count'] ?? 1) - 1;
+            } else {
+              post['like_count'] = (post['like_count'] ?? 0) + 1;
+            }
+            
+            _posts[postIndex] = post;
+          }
+        });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['message'])),
+          SnackBar(content: Text('Failed to like post: ${response.body}')),
         );
       }
     } catch (error) {
@@ -1043,118 +1243,329 @@ class _CommunityScreenState extends State<CommunityScreen> {
       );
     }
   }
-
-  // Implement the _reactToPost method
-  // Show comments in a bottom sheet
-  // Implementation of the _showComments method
-  void _showComments(dynamic post) {
-    final commentController = TextEditingController();
+  void _showComments(Map<String, dynamic> post) {
+    final TextEditingController commentController = TextEditingController();
     
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setState) => Container(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom,
-            top: 16,
-            left: 16,
-            right: 16,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        height: MediaQuery.of(ctx).size.height * 0.75,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
           ),
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(ctx).size.height * 0.75,
-            minHeight: MediaQuery.of(ctx).size.height * 0.5,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Header
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+        ),
+        child: Column(
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              Text(
-                'Comments',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              // Comments list
-              Expanded(
-                child: (post['comments'] as List? ?? []).isEmpty
-                  ? Center(child: Text('No comments yet. Be the first to comment!'))
-                  : ListView.builder(
-                      itemCount: (post['comments'] as List).length,
-                      itemBuilder: (ctx, index) {
-                        final comment = (post['comments'] as List)[index];
-                        return _buildCommentItem(comment, post['id']);
-                      },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Comments (${post['comment_count'] ?? 0})',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(ctx).pop(),
+                  ),
+                ],
               ),
-              // Add comment input
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: commentController,
-                        decoration: InputDecoration(
-                          hintText: 'Add a comment...',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(24),
+            ),
+            
+            // Comments list
+            Expanded(
+              child: post['comments'] != null && (post['comments'] as List).isNotEmpty
+                ? ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: (post['comments'] as List).length,
+                    itemBuilder: (context, index) {
+                      final comment = (post['comments'] as List)[index];
+                      return _buildCommentItem(comment, post['id']);
+                    },
+                  )
+                : Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.chat_bubble_outline, size: 48, color: Colors.grey),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'No comments yet',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey,
                           ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         ),
-                        maxLines: 3,
-                        minLines: 1,
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Be the first to comment!',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+            ),
+            
+            // Comment input
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: commentController,
+                      decoration: InputDecoration(
+                        hintText: 'Add a comment...',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey.shade100,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.send),
-                      onPressed: () async {
-                        if (commentController.text.isEmpty) return;
-                        final authProvider = Provider.of<AuthProvider>(context, listen: false);
-                        final token = authProvider.token;
-                        if (token == null) return;
-                        try {
-                          final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000';
-                          final url = Uri.parse('$baseUrl/api/community/posts/${post['id']}/comments/');
-                          final response = await http.post(
-                            url,
-                            headers: {
-                              'Authorization': 'Bearer $token',
-                              'Content-Type': 'application/json',
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.send, color: Colors.blue),
+                    onPressed: () {
+                      if (commentController.text.trim().isNotEmpty) {
+                        _createComment(post['id'], commentController.text.trim());
+                        commentController.clear();
+                        Navigator.of(ctx).pop(); // Close the sheet after commenting
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  // Add this method to build a comment item
+  Widget _buildCommentItem(Map<String, dynamic> comment, int postId) {
+    final TextEditingController replyController = TextEditingController();
+    final bool hasReplies = comment['replies'] != null && (comment['replies'] as List).isNotEmpty;
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Comment
+        Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // User avatar
+              CircleAvatar(
+                radius: 16,
+                backgroundColor: Colors.green.shade100,
+                child: Text(
+                  comment['user']['username']?.substring(0, 1).toUpperCase() ?? 'U',
+                  style: TextStyle(color: Colors.green.shade800),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Comment content
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            comment['user']['username'] ?? 'Unknown',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(comment['content'] ?? ''),
+                        ],
+                      ),
+                    ),
+                    
+                    // Comment actions
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8, top: 4),
+                      child: Row(
+                        children: [
+                          // Like button
+                          TextButton.icon(
+                            icon: Icon(
+                              comment['is_liked'] == true
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
+                              size: 16,
+                              color: comment['is_liked'] == true
+                                  ? Colors.red
+                                  : Colors.grey,
+                            ),
+                            label: Text(
+                              '${comment['likes_count'] ?? 0}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: comment['is_liked'] == true
+                                    ? Colors.red
+                                    : Colors.grey,
+                              ),
+                            ),
+                            onPressed: () => _likeComment(comment['id']),
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              minimumSize: const Size(50, 30),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          
+                          // Reply button
+                          GestureDetector(
+                            onTap: () {
+                              // Show reply input
+                              showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                builder: (ctx) => Padding(
+                                  padding: EdgeInsets.only(
+                                    bottom: MediaQuery.of(ctx).viewInsets.bottom,
+                                  ),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(16),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Text(
+                                          'Reply to comment',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 16),
+                                        TextField(
+                                          controller: replyController,
+                                          decoration: const InputDecoration(
+                                            hintText: 'Write your reply...',
+                                            border: OutlineInputBorder(),
+                                          ),
+                                          maxLines: 3,
+                                        ),
+                                        const SizedBox(height: 16),
+                                        ElevatedButton(
+                                          onPressed: () {
+                                            if (replyController.text.trim().isNotEmpty) {
+                                              _createReply(
+                                                comment['id'],
+                                                replyController.text.trim(),
+                                              );
+                                              Navigator.of(ctx).pop();
+                                            }
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.green,
+                                          ),
+                                          child: const Text('Post Reply'),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
                             },
-                            body: jsonEncode({
-                              'content': commentController.text,
-                            }),
-                          );
-                          if (response.statusCode == 201) {
-                            commentController.clear();
-                            Navigator.of(context).pop();
-                            _fetchPosts();
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Failed to add comment: ${response.body}')),
-                            );
-                          }
-                        } catch (error) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Error: ${error.toString()}')),
-                          );
-                        }
-                      },
+                            child: const Row(
+                              children: [
+                                Icon(
+                                  Icons.reply,
+                                  size: 16,
+                                  color: Colors.grey,
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Reply',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          
+                          // Delete button (only for user's own comments)
+                          if (comment['user']['id'] == Provider.of<AuthProvider>(context, listen: false).username)
+                            Padding(
+                              padding: const EdgeInsets.only(left: 16),
+                              child: GestureDetector(
+                                onTap: () => _deleteComment(comment['id']),
+                                child: const Row(
+                                  children: [
+                                    Icon(
+                                      Icons.delete_outline,
+                                      size: 16,
+                                      color: Colors.red,
+                                    ),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'Delete',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.red,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -1162,104 +1573,120 @@ class _CommunityScreenState extends State<CommunityScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-  // Build a comment item widget
-  Widget _buildCommentItem(dynamic comment, int postId) {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final isCurrentUserComment = authProvider.username == comment['user'].toString();
-    
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // User avatar
-          CircleAvatar(
-            backgroundColor: Colors.green.shade200,
-            child: Text(
-              comment['user'].toString()[0].toUpperCase(),
-              style: const TextStyle(color: Colors.white),
-            ),
-          ),
-          const SizedBox(width: 12),
-          // Comment content
-          Expanded(
+        
+        // Replies
+        if (hasReplies)
+          Padding(
+            padding: const EdgeInsets.only(left: 40),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Text(
-                      comment['user'].toString(),
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const Spacer(),
-                    if (isCurrentUserComment)
-                      IconButton(
-                        icon: const Icon(Icons.delete, size: 16, color: Colors.red), // Changed icon
-                        onPressed: () async { // Same onPressed logic
-                          final confirm = await showDialog<bool>(
-                            context: context,
-                            builder: (ctx) => AlertDialog(
-                              title: const Text('Delete Comment'),
-                              content: const Text('Are you sure you want to delete this comment?'),
-                              actions: [
-                                TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
-                                TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Delete')),
-                              ],
+                for (var reply in comment['replies'])
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        CircleAvatar(
+                          radius: 12,
+                          backgroundColor: Colors.blue.shade100,
+                          child: Text(
+                            reply['user']['username']?.substring(0, 1).toUpperCase() ?? 'U',
+                            style: TextStyle(
+                              color: Colors.blue.shade800,
+                              fontSize: 10,
                             ),
-                          );
-                          if (confirm == true) {
-                            // Call the new _deleteComment method
-                            await _deleteComment(comment['id']);
-                            // Note: _deleteComment already handles showing snackbars,
-                            // closing the dialog (implicitly by popping), and refreshing posts.
-                          }
-                        },
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(comment['text'].toString()), // Changed 'content' to 'text'
-                const SizedBox(height: 4),
-                Text(
-                  _formatDate(comment['created_at']),
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                ),
-                // Reply button
-                TextButton.icon(
-                  onPressed: () {
-                    // Show reply dialog
-                    _showReplyDialog(postId, comment['id']);
-                  },
-                  icon: const Icon(Icons.reply, size: 16),
-                  label: const Text('Reply'),
-                  style: TextButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: const Size(50, 30),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    textStyle: const TextStyle(fontSize: 12),
-                  ),
-                ),
-                // Display replies if any
-                if (comment['replies'] != null && (comment['replies'] as List).isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 16.0, top: 8.0),
-                    child: Column(
-                      children: (comment['replies'] as List).map<Widget>((reply) {
-                        return _buildCommentItem(reply, postId);
-                      }).toList(),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.shade50,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      reply['user']['username'] ?? 'Unknown',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      reply['content'] ?? '',
+                                      style: const TextStyle(fontSize: 12),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              
+                              // Reply actions
+                              Padding(
+                                padding: const EdgeInsets.only(left: 8, top: 2),
+                                child: Row(
+                                  children: [
+                                    // Like button for reply
+                                    IconButton(
+                                      icon: Icon(
+                                        reply['is_liked'] == true ? Icons.favorite : Icons.favorite_border,
+                                        color: reply['is_liked'] == true ? Colors.red : Colors.grey,
+                                        size: 16,
+                                      ),
+                                      onPressed: () => _likeReply(reply['id']),
+                                      padding: EdgeInsets.zero,
+                                      constraints: BoxConstraints(),
+                                      iconSize: 16,
+                                    ),
+                                    Text(
+                                      '${reply['like_count'] ?? 0}',
+                                      style: TextStyle(fontSize: 12),
+                                    ),
+                                    
+                                    // Delete button for reply (only for user's own replies)
+                                    if (reply['user']['id'] == Provider.of<AuthProvider>(context, listen: false).username)
+                                      Padding(
+                                        padding: const EdgeInsets.only(left: 12),
+                                        child: GestureDetector(
+                                          onTap: () => _deleteComment(reply['id']),
+                                          child: const Row(
+                                            children: [
+                                              Icon(
+                                                Icons.delete_outline,
+                                                size: 12,
+                                                color: Colors.red,
+                                              ),
+                                              SizedBox(width: 2),
+                                              Text(
+                                                'Delete',
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  color: Colors.red,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
               ],
             ),
           ),
-        ],
-      ),
+      ],
     );
   }
 
@@ -1348,35 +1775,17 @@ class _CommunityScreenState extends State<CommunityScreen> {
   }
   
   // Add this helper method for filter chips
-  Widget _buildFilterChip(String label, IconData icon, Color color) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 4.0),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        child: Chip(
-          label: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: color, size: 18),
-              const SizedBox(width: 4),
-              Text(
-                label,
-                style: const TextStyle(fontWeight: FontWeight.w500),
-              ),
-            ],
-          ),
-          backgroundColor: color.withOpacity(0.1),
-          elevation: 2,
-          shadowColor: Colors.black26,
+  // Removed _buildFilterChip method as it's been replaced by search functionality
+  /*
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
-            side: BorderSide(color: color.withOpacity(0.3)),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         ),
       ),
     );
   }
+  */
+
   
 // Implement the _reactToPost method
 Future<void> _reactToPost(int postId, String reaction) async {

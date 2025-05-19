@@ -9,11 +9,7 @@ from users.views import (
     predict_image, 
     predict_image_anonymous,
     get_disease_info,
-    UserProfileView,
-    CommunityPostListCreateView,
-    CommunityPostDetailView,
-    PostLikeView,
-    CommentListCreateView
+    UserProfileView
 )
 
 urlpatterns = [
@@ -36,12 +32,6 @@ urlpatterns = [
     
     # User profile endpoint
     path('profile/', UserProfileView.as_view(), name='user-profile'),
-    
-    # Community endpoints
-    path('community/posts/', CommunityPostListCreateView.as_view(), name='community-posts'),
-    path('community/posts/<int:pk>/', CommunityPostDetailView.as_view(), name='community-post-detail'),
-    path('community/posts/<int:pk>/like/', PostLikeView.as_view(), name='post-like'),
-    path('community/posts/<int:post_id>/comments/', CommentListCreateView.as_view(), name='post-comments'),
 ]
 
 # Serve media files in development
