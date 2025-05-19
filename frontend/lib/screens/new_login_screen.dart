@@ -130,7 +130,7 @@ class _NewLoginScreenState extends State<NewLoginScreen> {
                   TextFormField(
                     controller: _usernameController,
                     decoration: InputDecoration(
-                      hintText: 'Enter your email',
+                      hintText: 'Enter your username',
                       filled: true,
                       fillColor: Colors.grey.shade100,
                       border: OutlineInputBorder(
@@ -144,7 +144,7 @@ class _NewLoginScreenState extends State<NewLoginScreen> {
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please enter your email';
+                        return 'Please enter your username';
                       }
                       return null;
                     },

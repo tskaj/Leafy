@@ -138,7 +138,7 @@ class _NewRegisterScreenState extends State<NewRegisterScreen> {
                   TextFormField(
                     controller: _usernameController,
                     decoration: InputDecoration(
-                      hintText: 'Enter your name',
+                      hintText: 'Enter your username',
                       filled: true,
                       fillColor: Colors.grey.shade100,
                       border: OutlineInputBorder(
