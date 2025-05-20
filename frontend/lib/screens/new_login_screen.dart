@@ -104,7 +104,7 @@ class _NewLoginScreenState extends State<NewLoginScreen> {
                         duration: 600.ms,
                       ),
                   const SizedBox(height: 8),
-                  
+
                   // Subtitle
                   Text(
                     'Your plant care companion',
@@ -114,9 +114,9 @@ class _NewLoginScreenState extends State<NewLoginScreen> {
                     ),
                     textAlign: TextAlign.center,
                   ).animate().fadeIn(delay: 200.ms, duration: 600.ms),
-                  
+
                   const SizedBox(height: 60),
-                  
+
                   // Email field
                   Text(
                     'Username',
@@ -149,9 +149,9 @@ class _NewLoginScreenState extends State<NewLoginScreen> {
                       return null;
                     },
                   ).animate().fadeIn(delay: 400.ms, duration: 500.ms),
-                  
+
                   const SizedBox(height: 24),
-                  
+
                   // Password field
                   Text(
                     'Password',
@@ -198,9 +198,9 @@ class _NewLoginScreenState extends State<NewLoginScreen> {
                       return null;
                     },
                   ).animate().fadeIn(delay: 600.ms, duration: 500.ms),
-                  
+
                   const SizedBox(height: 16),
-                  
+
                   // Forgot password
                   Align(
                     alignment: Alignment.centerRight,
@@ -217,9 +217,9 @@ class _NewLoginScreenState extends State<NewLoginScreen> {
                       child: const Text('Forgot password?'),
                     ),
                   ).animate().fadeIn(delay: 700.ms, duration: 500.ms),
-                  
+
                   const SizedBox(height: 32),
-                  
+
                   // Login button
                   ElevatedButton(
                     onPressed: _isLoading ? null : _login,
@@ -250,9 +250,9 @@ class _NewLoginScreenState extends State<NewLoginScreen> {
                             ),
                           ),
                   ).animate().fadeIn(delay: 800.ms, duration: 500.ms),
-                  
+
                   const SizedBox(height: 60),
-                  
+
                   // Register link
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -284,6 +284,33 @@ class _NewLoginScreenState extends State<NewLoginScreen> {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class LoginScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Add back button at the top
+            Padding(
+              padding: const EdgeInsets.only(left: 16.0, top: 16.0),
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: IconButton(
+                  icon: Icon(Icons.arrow_back, color: Colors.green),
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Go back to previous screen
+                  },
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
