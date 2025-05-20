@@ -15,9 +15,8 @@ import 'account_settings_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
-  
+
   // Helper method to ensure image URLs are complete
-  
 
   @override
   Widget build(BuildContext context) {
@@ -26,18 +25,33 @@ class ProfileScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Leafy', style: TextStyle(fontWeight: FontWeight.bold)),
         elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.more_vert),
-            onPressed: () {
-              // Show more options
-            },
-          ),
-        ],
+        backgroundColor: Colors.green.shade50,
+        foregroundColor: Colors.green.shade800,
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.eco, color: Colors.green),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Profile',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
       ),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
@@ -56,11 +70,10 @@ class ProfileScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              child: !isLoggedIn ?
-                _buildNotLoggedInView(context)
-              :
-                _buildLoggedInView(context, authProvider),
-            ),           
+              child: !isLoggedIn
+                  ? _buildNotLoggedInView(context)
+                  : _buildLoggedInView(context, authProvider),
+            ),
             // Menu sections with subtle dividers
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -69,7 +82,8 @@ class ProfileScreen extends StatelessWidget {
                 children: [
                   const SizedBox(height: 8),
                   const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
+                    padding:
+                        EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
                     child: Text(
                       'Features',
                       style: TextStyle(
@@ -79,16 +93,16 @@ class ProfileScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  
+
                   // Feature cards
                   _buildGrowTogetherSection(context),
                   const SizedBox(height: 12),
                   _buildFeedbackSection(context),
                   const SizedBox(height: 12),
                   _buildLanguageSection(context),
-                  
+
                   const SizedBox(height: 24),
-                  
+
                   // Stories section
                   _buildStoriesSection(context),
                 ],
@@ -97,16 +111,17 @@ class ProfileScreen extends StatelessWidget {
           ],
         ),
       ),
-    );}
-    
-      static _getFullImageUrl(String imageUrl) {
-         if (imageUrl.startsWith('http')) {
+    );
+  }
+
+  static _getFullImageUrl(String imageUrl) {
+    if (imageUrl.startsWith('http')) {
       return imageUrl;
     } else {
       // For relative URLs, construct the full URL
       final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000';
       return '$baseUrl$imageUrl';
-      }
+    }
   }
 
   Widget _buildNotLoggedInView(BuildContext context) {
@@ -176,7 +191,8 @@ class ProfileScreen extends StatelessWidget {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const NewLoginScreen()),
+                          MaterialPageRoute(
+                              builder: (context) => const NewLoginScreen()),
                         );
                       },
                       style: ElevatedButton.styleFrom(
@@ -203,7 +219,8 @@ class ProfileScreen extends StatelessWidget {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const NewRegisterScreen()),
+                          MaterialPageRoute(
+                              builder: (context) => const NewRegisterScreen()),
                         );
                       },
                       style: OutlinedButton.styleFrom(
@@ -261,7 +278,8 @@ class ProfileScreen extends StatelessWidget {
   }
 
   // Method to upload profile image
-  Future<void> _uploadProfileImage(BuildContext context, ImageSource source) async {
+  Future<void> _uploadProfileImage(
+      BuildContext context, ImageSource source) async {
     try {
       final picker = ImagePicker();
       final pickedImage = await picker.pickImage(
@@ -283,12 +301,12 @@ class ProfileScreen extends StatelessWidget {
       // Prepare the request
       final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000';
       // Corrected the endpoint based on backend URL configuration
-      final url = Uri.parse('$baseUrl/profile/'); 
-      
+      final url = Uri.parse('$baseUrl/profile/');
+
       // Changed method to PUT as profile update is likely idempotent
       var request = http.MultipartRequest('PUT', url);
       request.headers['Authorization'] = 'Bearer $token';
-      
+
       // Add the image file
       if (kIsWeb) {
         final imageBytes = await pickedImage.readAsBytes();
@@ -296,33 +314,36 @@ class ProfileScreen extends StatelessWidget {
           'profile_image',
           imageBytes,
           filename: pickedImage.name, // Use pickedImage.name for web
-          contentType: MediaType('image', 'jpeg'), // Adjust content type if needed
+          contentType:
+              MediaType('image', 'jpeg'), // Adjust content type if needed
         ));
       } else {
         request.files.add(await http.MultipartFile.fromPath(
           'profile_image',
           pickedImage.path,
-          contentType: MediaType('image', 'jpeg'), // Adjust content type if needed
+          contentType:
+              MediaType('image', 'jpeg'), // Adjust content type if needed
         ));
       }
-      
+
       // Send the request
       final response = await request.send();
       final responseData = await response.stream.bytesToString();
-      
+
       if (response.statusCode == 200) {
         // Update the profile image in the provider
         final data = json.decode(responseData);
         if (data['profile_image'] != null) {
           authProvider.updateProfileImage(data['profile_image']);
         }
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Profile image updated successfully')),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update profile image: ${responseData}')),
+          SnackBar(
+              content: Text('Failed to update profile image: ${responseData}')),
         );
       }
     } catch (error) {
@@ -333,15 +354,15 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildLoggedInView(BuildContext context, AuthProvider authProvider) {
-  //   String _getFullImageUrl(String imageUrl) {
-  //   if (imageUrl.startsWith('http')) {
-  //     return imageUrl;
-  //   } else {
-  //     // For relative URLs, construct the full URL
-  //     final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000';
-  //     return '$baseUrl$imageUrl';
-  //   }
-  // }
+    //   String _getFullImageUrl(String imageUrl) {
+    //   if (imageUrl.startsWith('http')) {
+    //     return imageUrl;
+    //   } else {
+    //     // For relative URLs, construct the full URL
+    //     final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000';
+    //     return '$baseUrl$imageUrl';
+    //   }
+    // }
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
@@ -360,7 +381,8 @@ class ProfileScreen extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: Colors.green.shade100,
                         borderRadius: BorderRadius.circular(50),
-                        border: Border.all(color: Colors.green.shade300, width: 2),
+                        border:
+                            Border.all(color: Colors.green.shade300, width: 2),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.green.withOpacity(0.2),
@@ -373,7 +395,8 @@ class ProfileScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(50),
                         child: authProvider.profileImage != null
                             ? CachedNetworkImage(
-                                imageUrl: ProfileScreen._getFullImageUrl(authProvider.profileImage!),
+                                imageUrl: ProfileScreen._getFullImageUrl(
+                                    authProvider.profileImage!),
                                 fit: BoxFit.cover,
                                 placeholder: (context, url) => Center(
                                   child: CircularProgressIndicator(
@@ -385,8 +408,12 @@ class ProfileScreen extends StatelessWidget {
                                   print('Error loading profile image: $error');
                                   return Center(
                                     child: Text(
-                                      authProvider.username?[0].toUpperCase() ?? 'U',
-                                      style: TextStyle(fontSize: 42, color: Colors.green.shade700, fontWeight: FontWeight.bold),
+                                      authProvider.username?[0].toUpperCase() ??
+                                          'U',
+                                      style: TextStyle(
+                                          fontSize: 42,
+                                          color: Colors.green.shade700,
+                                          fontWeight: FontWeight.bold),
                                       textAlign: TextAlign.center,
                                     ),
                                   );
@@ -394,8 +421,12 @@ class ProfileScreen extends StatelessWidget {
                               )
                             : Center(
                                 child: Text(
-                                  authProvider.username?[0].toUpperCase() ?? 'U',
-                                  style: TextStyle(fontSize: 42, color: Colors.green.shade700, fontWeight: FontWeight.bold),
+                                  authProvider.username?[0].toUpperCase() ??
+                                      'U',
+                                  style: TextStyle(
+                                      fontSize: 42,
+                                      color: Colors.green.shade700,
+                                      fontWeight: FontWeight.bold),
                                 ),
                               ),
                       ),
@@ -432,7 +463,8 @@ class ProfileScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if(authProvider.username != null && authProvider.username!.isNotEmpty)
+                    if (authProvider.username != null &&
+                        authProvider.username!.isNotEmpty)
                       Text(
                         authProvider.username!,
                         style: const TextStyle(
@@ -443,28 +475,32 @@ class ProfileScreen extends StatelessWidget {
                       ),
                     const SizedBox(height: 8),
                     // Only show email if available
-                    if (authProvider.email != null && authProvider.email!.isNotEmpty)
+                    if (authProvider.email != null &&
+                        authProvider.email!.isNotEmpty)
                       Text(
                         authProvider.email!,
-                        style: TextStyle(fontSize: 16, color: Colors.grey.shade700),
+                        style: TextStyle(
+                            fontSize: 16, color: Colors.grey.shade700),
                       ),
                   ],
                 ),
               ),
             ],
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Account options in a card with rounded corners
           Card(
             elevation: 0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: Column(
               children: [
                 // Account settings option
                 ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
@@ -473,21 +509,29 @@ class ProfileScreen extends StatelessWidget {
                     ),
                     child: Icon(Icons.settings, color: Colors.blue.shade700),
                   ),
-                  title: const Text('Account Settings', style: TextStyle(fontWeight: FontWeight.w500)),
+                  title: const Text('Account Settings',
+                      style: TextStyle(fontWeight: FontWeight.w500)),
                   trailing: const Icon(Icons.chevron_right, color: Colors.grey),
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const AccountSettingsScreen()),
+                      MaterialPageRoute(
+                          builder: (context) => const AccountSettingsScreen()),
                     );
                   },
                 ),
-                
-                Divider(height: 1, thickness: 1, indent: 70, endIndent: 20, color: Colors.grey.shade200),
-                
+
+                Divider(
+                    height: 1,
+                    thickness: 1,
+                    indent: 70,
+                    endIndent: 20,
+                    color: Colors.grey.shade200),
+
                 // Sign out option
                 ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
@@ -496,7 +540,8 @@ class ProfileScreen extends StatelessWidget {
                     ),
                     child: Icon(Icons.exit_to_app, color: Colors.red.shade700),
                   ),
-                  title: const Text('Sign Out', style: TextStyle(fontWeight: FontWeight.w500)),
+                  title: const Text('Sign Out',
+                      style: TextStyle(fontWeight: FontWeight.w500)),
                   onTap: () {
                     authProvider.logout();
                   },
@@ -565,11 +610,13 @@ class ProfileScreen extends StatelessWidget {
                   // This would typically use a share package like share_plus
                   // For now, we'll show a snackbar indicating sharing
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Sharing Leafy with your friends!')),
+                    const SnackBar(
+                        content: Text('Sharing Leafy with your friends!')),
                   );
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error sharing app: ${e.toString()}')),
+                    SnackBar(
+                        content: Text('Error sharing app: ${e.toString()}')),
                   );
                 }
               },
@@ -580,7 +627,8 @@ class ProfileScreen extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
               child: const Text(
                 'Share Leafy',
@@ -654,7 +702,8 @@ class ProfileScreen extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
               child: const Text(
                 'Feedback',
@@ -705,17 +754,20 @@ class ProfileScreen extends StatelessWidget {
             const SizedBox(height: 16),
             _buildLanguageOption(context, 'English', const Locale('en', '')),
             Divider(height: 1, thickness: 1, color: Colors.grey.shade200),
-            _buildLanguageOption(context, 'اردو (Urdu)', const Locale('ur', '')),
+            _buildLanguageOption(
+                context, 'اردو (Urdu)', const Locale('ur', '')),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildLanguageOption(BuildContext context, String language, Locale locale) {
+  Widget _buildLanguageOption(
+      BuildContext context, String language, Locale locale) {
     final languageProvider = Provider.of<LanguageProvider>(context);
-    final isSelected = languageProvider.locale?.languageCode == locale.languageCode;
-    
+    final isSelected =
+        languageProvider.locale?.languageCode == locale.languageCode;
+
     return InkWell(
       onTap: () {
         languageProvider.setLocale(locale);
@@ -729,7 +781,9 @@ class ProfileScreen extends StatelessWidget {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? Theme.of(context).primaryColor : Colors.black87,
+                color: isSelected
+                    ? Theme.of(context).primaryColor
+                    : Colors.black87,
               ),
             ),
             const Spacer(),
@@ -755,7 +809,7 @@ class ProfileScreen extends StatelessWidget {
   // Method to show feedback dialog
   void _showFeedbackDialog(BuildContext context) {
     final TextEditingController feedbackController = TextEditingController();
-    
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -836,11 +890,13 @@ class ProfileScreen extends StatelessWidget {
                       children: [
                         const Text(
                           'Leafy',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16),
                         ),
                         Text(
                           '2 days ago',
-                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                          style: TextStyle(
+                              fontSize: 12, color: Colors.grey.shade600),
                         ),
                       ],
                     ),
@@ -875,7 +931,8 @@ class ProfileScreen extends StatelessWidget {
                         height: 200,
                         color: Colors.grey.shade200,
                         child: const Center(
-                          child: Icon(Icons.image_not_supported, size: 40, color: Colors.grey),
+                          child: Icon(Icons.image_not_supported,
+                              size: 40, color: Colors.grey),
                         ),
                       );
                     },
@@ -890,40 +947,57 @@ class ProfileScreen extends StatelessWidget {
                 const SizedBox(height: 12),
                 const Text(
                   'Common sucking pests include:',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, height: 1.5),
+                  style: TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold, height: 1.5),
                 ),
                 const SizedBox(height: 8),
-                _buildBulletPoint('Aphids - Small, soft-bodied insects that cluster on new growth'),
-                _buildBulletPoint('Whiteflies - Tiny, white flying insects that feed on the undersides of leaves'),
-                _buildBulletPoint('Spider mites - Microscopic pests that cause stippling on leaves'),
-                _buildBulletPoint('Leafhoppers - Wedge-shaped insects that hop when disturbed'),
+                _buildBulletPoint(
+                    'Aphids - Small, soft-bodied insects that cluster on new growth'),
+                _buildBulletPoint(
+                    'Whiteflies - Tiny, white flying insects that feed on the undersides of leaves'),
+                _buildBulletPoint(
+                    'Spider mites - Microscopic pests that cause stippling on leaves'),
+                _buildBulletPoint(
+                    'Leafhoppers - Wedge-shaped insects that hop when disturbed'),
                 const SizedBox(height: 12),
                 const Text(
                   'Management strategies:',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, height: 1.5),
+                  style: TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold, height: 1.5),
                 ),
                 const SizedBox(height: 8),
-                _buildBulletPoint('Regular monitoring of plants for early detection'),
-                _buildBulletPoint('Introducing beneficial insects like ladybugs and lacewings'),
-                _buildBulletPoint('Using insecticidal soaps for mild infestations'),
+                _buildBulletPoint(
+                    'Regular monitoring of plants for early detection'),
+                _buildBulletPoint(
+                    'Introducing beneficial insects like ladybugs and lacewings'),
+                _buildBulletPoint(
+                    'Using insecticidal soaps for mild infestations'),
                 _buildBulletPoint('Applying neem oil as a natural deterrent'),
-                _buildBulletPoint('Maintaining plant health through proper watering and fertilization'),
+                _buildBulletPoint(
+                    'Maintaining plant health through proper watering and fertilization'),
                 const SizedBox(height: 20),
                 const Text(
                   'Remember that prevention is always better than cure. Keep your garden clean, remove affected leaves promptly, and maintain biodiversity to keep pest populations in check naturally.',
-                  style: TextStyle(fontSize: 16, fontStyle: FontStyle.italic, height: 1.5),
+                  style: TextStyle(
+                      fontSize: 16, fontStyle: FontStyle.italic, height: 1.5),
                 ),
                 const SizedBox(height: 30),
                 // Article footer
                 Row(
                   children: [
-                    Icon(Icons.thumb_up_outlined, size: 20, color: Colors.grey.shade600),
+                    Icon(Icons.thumb_up_outlined,
+                        size: 20, color: Colors.grey.shade600),
                     const SizedBox(width: 4),
-                    Text('42 likes', style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
+                    Text('42 likes',
+                        style: TextStyle(
+                            fontSize: 14, color: Colors.grey.shade600)),
                     const SizedBox(width: 16),
-                    Icon(Icons.comment_outlined, size: 20, color: Colors.grey.shade600),
+                    Icon(Icons.comment_outlined,
+                        size: 20, color: Colors.grey.shade600),
                     const SizedBox(width: 4),
-                    Text('8 comments', style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
+                    Text('8 comments',
+                        style: TextStyle(
+                            fontSize: 14, color: Colors.grey.shade600)),
                   ],
                 ),
               ],
@@ -941,7 +1015,8 @@ class ProfileScreen extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('• ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const Text('• ',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           Expanded(
             child: Text(
               text,
@@ -989,7 +1064,8 @@ class ProfileScreen extends StatelessWidget {
         const SizedBox(height: 12),
         Card(
           elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1008,7 +1084,8 @@ class ProfileScreen extends StatelessWidget {
                       height: 160,
                       color: Colors.grey.shade200,
                       child: const Center(
-                        child: Icon(Icons.image_not_supported, size: 40, color: Colors.grey),
+                        child: Icon(Icons.image_not_supported,
+                            size: 40, color: Colors.grey),
                       ),
                     );
                   },
@@ -1024,7 +1101,8 @@ class ProfileScreen extends StatelessWidget {
                         CircleAvatar(
                           radius: 16,
                           backgroundColor: Colors.green,
-                          child: const Icon(Icons.eco, color: Colors.white, size: 16),
+                          child: const Icon(Icons.eco,
+                              color: Colors.white, size: 16),
                         ),
                         const SizedBox(width: 8),
                         const Text(
@@ -1065,20 +1143,29 @@ class ProfileScreen extends StatelessWidget {
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        Icon(Icons.remove_red_eye_outlined, size: 16, color: Colors.grey.shade600),
+                        Icon(Icons.remove_red_eye_outlined,
+                            size: 16, color: Colors.grey.shade600),
                         const SizedBox(width: 4),
-                        Text('245 views', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                        Text('245 views',
+                            style: TextStyle(
+                                fontSize: 12, color: Colors.grey.shade600)),
                         const Spacer(),
                         OutlinedButton(
                           onPressed: () {
                             _showArticleDetails(context);
                           },
                           style: OutlinedButton.styleFrom(
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                            side: BorderSide(color: Theme.of(context).primaryColor),
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20)),
+                            side: BorderSide(
+                                color: Theme.of(context).primaryColor),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
                           ),
-                          child: Text('Read More', style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 12)),
+                          child: Text('Read More',
+                              style: TextStyle(
+                                  color: Theme.of(context).primaryColor,
+                                  fontSize: 12)),
                         ),
                       ],
                     ),
