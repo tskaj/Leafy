@@ -48,9 +48,9 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   
-  # Assets configuration
   assets:
     - assets/images/
+    - assets/images/weather/
     - assets/translations/
     - assets/fonts/  # Make sure this directory exists
     - assets/animations/ # Make sure this directory exists

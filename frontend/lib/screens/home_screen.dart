@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -29,7 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String _selectedCrop = 'tomato';
   List<String> _availableCrops = ['tomato'];
   bool _loadingCrops = true;
-  
+
   // Weather data
   bool _loadingWeather = true;
   Map<String, dynamic>? _currentWeather;
@@ -52,14 +53,18 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       // Get current location
       final position = await WeatherService.getCurrentLocation();
-      
+
       // Fetch weather data in parallel
       final weatherFutures = await Future.wait([
-        WeatherService.getCurrentWeather(position.latitude, position.longitude, units: _weatherUnits),
-        WeatherService.getWeatherForecast(position.latitude, position.longitude, units: _weatherUnits),
-        WeatherService.getSprayRecommendations(position.latitude, position.longitude, units: _weatherUnits),
+        WeatherService.getCurrentWeather(position.latitude, position.longitude,
+            units: _weatherUnits),
+        WeatherService.getWeatherForecast(position.latitude, position.longitude,
+            units: _weatherUnits),
+        WeatherService.getSprayRecommendations(
+            position.latitude, position.longitude,
+            units: _weatherUnits),
       ]);
-      
+
       if (mounted) {
         setState(() {
           _currentWeather = weatherFutures[0];
@@ -74,9 +79,10 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           _loadingWeather = false;
         });
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not load weather data: ${e.toString()}')),
+          SnackBar(
+              content: Text('Could not load weather data: ${e.toString()}')),
         );
       }
     }
@@ -90,9 +96,9 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final token = authProvider.token;
-      
+
       final crops = await DiseaseService.getAvailableCrops(token);
-      
+
       setState(() {
         _availableCrops = crops;
         _loadingCrops = false;
@@ -103,16 +109,18 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     }
   }
-  
+
   void _navigateToLogin() {
     // Ensure context is still valid before navigating
     if (mounted) {
       Navigator.of(context).push(
-        MaterialPageRoute(builder: (ctx) => const NewLoginScreen()), // Now this should be found
+        MaterialPageRoute(
+            builder: (ctx) =>
+                const NewLoginScreen()), // Now this should be found
       );
     }
   }
-  
+
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
@@ -127,14 +135,17 @@ class _HomeScreenState extends State<HomeScreen> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(AppLocalizations.of(context)?.pleaseSelectLeafImage ?? 'Please select a leaf image')),
+            SnackBar(
+                content: Text(
+                    AppLocalizations.of(context)?.pleaseSelectLeafImage ??
+                        'Please select a leaf image')),
           );
         }
       }
     }
   }
 
-Future<void> _captureImage() async {
+  Future<void> _captureImage() async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.camera);
 
@@ -148,17 +159,20 @@ Future<void> _captureImage() async {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(AppLocalizations.of(context)?.pleaseSelectLeafImage ?? 'Please select a leaf image')),
+            SnackBar(
+                content: Text(
+                    AppLocalizations.of(context)?.pleaseSelectLeafImage ??
+                        'Please select a leaf image')),
           );
         }
       }
     }
   }
-  
- Future<bool> _validateLeafImage(XFile image) async {
+
+  Future<bool> _validateLeafImage(XFile image) async {
     // Basic validation based on file extension
     final validExtensions = ['jpg', 'jpeg', 'png'];
-    
+
     // Handle both regular file paths and blob URLs
     String fileExtension;
     if (kIsWeb && image.path.startsWith('blob:')) {
@@ -173,17 +187,18 @@ Future<void> _captureImage() async {
       // For mobile platforms, use the path
       fileExtension = image.path.split('.').last.toLowerCase();
     }
-    
+
     if (!validExtensions.contains(fileExtension)) {
       print('Invalid file extension: $fileExtension');
       return false;
     }
-    
+
     // Size validation
     try {
       final fileBytes = await image.readAsBytes();
       final fileSizeInMB = fileBytes.length / (1024 * 1024);
-      if (fileSizeInMB > 10) { // Limit to 10MB
+      if (fileSizeInMB > 10) {
+        // Limit to 10MB
         print('File too large: ${fileSizeInMB.toStringAsFixed(2)} MB');
         return false;
       }
@@ -191,19 +206,19 @@ Future<void> _captureImage() async {
       print('Error checking file size: $e');
       // Continue with validation if size check fails
     }
-    
+
     // Use the same validation approach for both web and mobile
     try {
       final result = await DiseaseService.validateLeafImage(image);
-      
+
       if (result['success']) {
         // Check if it's a leaf with sufficient confidence
         final isLeaf = result['isLeaf'] as bool;
         final confidence = result['confidence'] as double;
-        
+
         // Set a reasonable confidence threshold
         final confidenceThreshold = 0.6; // 60% confidence threshold
-        
+
         print('Leaf validation result: isLeaf=$isLeaf, confidence=$confidence');
         return isLeaf && confidence >= confidenceThreshold;
       } else {
@@ -219,12 +234,13 @@ Future<void> _captureImage() async {
     }
   }
 
-
-Future<void> _detectDisease() async {
+  Future<void> _detectDisease() async {
     final localizations = AppLocalizations.of(context);
     if (_selectedImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(localizations?.pleaseSelectImage ?? 'Please select an image')),
+        SnackBar(
+            content: Text(
+                localizations?.pleaseSelectImage ?? 'Please select an image')),
       );
       return;
     }
@@ -238,19 +254,23 @@ Future<void> _detectDisease() async {
       final token = authProvider.token;
 
       Map<String, dynamic> result;
-      
+
       if (kIsWeb) {
         // For web, we need to handle this differently
         final bytes = await _selectedImage!.readAsBytes();
-        result = token != null 
-            ? await DiseaseService.detectDiseaseWeb(bytes, token, cropType: _selectedCrop)
-            : await DiseaseService.detectDiseaseAnonymousWeb(bytes, cropType: _selectedCrop);
+        result = token != null
+            ? await DiseaseService.detectDiseaseWeb(bytes, token,
+                cropType: _selectedCrop)
+            : await DiseaseService.detectDiseaseAnonymousWeb(bytes,
+                cropType: _selectedCrop);
       } else {
         // For mobile platforms
         final file = File(_selectedImage!.path);
         result = token != null
-            ? await DiseaseService.detectDisease(file, token, cropType: _selectedCrop)
-            : await DiseaseService.detectDiseaseAnonymousMobile(file, cropType: _selectedCrop);
+            ? await DiseaseService.detectDisease(file, token,
+                cropType: _selectedCrop)
+            : await DiseaseService.detectDiseaseAnonymousMobile(file,
+                cropType: _selectedCrop);
       }
 
       if (!mounted) return;
@@ -276,7 +296,7 @@ Future<void> _detectDisease() async {
     });
   }
 
-   Widget _buildWeatherWidget() {
+  Widget _buildWeatherWidget() {
     if (_loadingWeather) {
       return Container(
         margin: const EdgeInsets.all(16),
@@ -306,7 +326,8 @@ Future<void> _detectDisease() async {
               const Icon(Icons.cloud_off, size: 48, color: Colors.grey),
               const SizedBox(height: 16),
               Text(
-                AppLocalizations.of(context)?.weatherDataUnavailable ?? 'Weather data unavailable',
+                AppLocalizations.of(context)?.weatherDataUnavailable ??
+                    'Weather data unavailable',
                 style: TextStyle(color: Colors.grey.shade700),
               ),
               TextButton(
@@ -328,17 +349,16 @@ Future<void> _detectDisease() async {
     final windDirection = _currentWeather!['wind_direction'];
     final locationName = _currentWeather!['location_name'];
     final country = _currentWeather!['country'];
-    
+
     // Format data
     final formattedTemp = WeatherService.formatTemperature(temp, _weatherUnits);
     final windDirectionText = WeatherService.getWindDirection(windDirection);
     final iconUrl = WeatherService.getWeatherIconUrl(iconCode);
-    
     // Get spray recommendations
-    final hasOptimalTimes = _sprayRecommendations != null && 
-                           _sprayRecommendations!.containsKey('optimal_times') && 
-                           _sprayRecommendations!['optimal_times'] != null &&
-                           (_sprayRecommendations!['optimal_times'] as List).isNotEmpty;
+    final hasOptimalTimes = _sprayRecommendations != null &&
+        _sprayRecommendations!.containsKey('optimal_times') &&
+        _sprayRecommendations!['optimal_times'] != null &&
+        (_sprayRecommendations!['optimal_times'] as List).isNotEmpty;
 
     return GestureDetector(
       onTap: () {
@@ -361,121 +381,191 @@ Future<void> _detectDisease() async {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Colors.blue.shade500, Colors.blue.shade700],
+            colors: _getWeatherGradient(condition),
+          ),
+          image: DecorationImage(
+            image: AssetImage(_getWeatherBackgroundImage(condition)),
+            fit: BoxFit.cover,
+            opacity: 0.15,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.blue.shade200.withOpacity(0.5),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: _getWeatherShadowColor(condition),
+              blurRadius: 15,
+              spreadRadius: 2,
+              offset: const Offset(0, 5),
             ),
           ],
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 3.0, sigmaY: 3.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(Icons.location_on, color: Colors.white, size: 16),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                '$locationName, $country',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.3),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(Icons.location_on,
+                                      color: Colors.white, size: 12),
                                 ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    '$locationName, $country',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                      shadows: [
+                                        Shadow(
+                                            blurRadius: 2.0,
+                                            offset: Offset(0, 1),
+                                            color: Colors.black26)
+                                      ],
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  formattedTemp,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 48,
+                                    fontWeight: FontWeight.bold,
+                                    height: 0.9,
+                                    shadows: [
+                                      Shadow(
+                                          blurRadius: 3.0,
+                                          offset: Offset(0, 2),
+                                          color: Colors.black38)
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8.0),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      description,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          formattedTemp,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 36,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          description,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Image.network(
-                    iconUrl,
-                    width: 80,
-                    height: 80,
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Icon(
-                        Icons.cloud,
-                        color: Colors.white,
-                        size: 60,
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(24),
-                  bottomRight: Radius.circular(24),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.air, color: Colors.white, size: 16),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${windSpeed.toStringAsFixed(1)} ${_weatherUnits == 'imperial' ? 'mph' : 'm/s'} $windDirectionText',
-                        style: const TextStyle(color: Colors.white),
                       ),
+                      _buildWeatherIcon(iconCode),
                     ],
                   ),
-                  if (hasOptimalTimes)
-                    Row(
-                      children: [
-                        const Icon(Icons.schedule, color: Colors.white, size: 16),
-                        const SizedBox(width: 4),
-                        Text(
-                          AppLocalizations.of(context)?.optimalSprayTime ?? 'Optimal spray time available',
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                      ],
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.1),
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(24),
+                      bottomRight: Radius.circular(24),
                     ),
-                ],
-              ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(Icons.air,
+                                color: Colors.white, size: 14),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${windSpeed.toStringAsFixed(1)} ${_weatherUnits == 'imperial' ? 'mph' : 'm/s'} $windDirectionText',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (hasOptimalTimes)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                                color: Colors.white.withOpacity(0.3), width: 1),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.schedule,
+                                  color: Colors.white, size: 14),
+                              const SizedBox(width: 4),
+                              Text(
+                                AppLocalizations.of(context)
+                                        ?.optimalSprayTime ??
+                                    'Spray time',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
-  
+
   Widget _buildDivider() {
     return Container(
       height: 30,
@@ -483,74 +573,126 @@ Future<void> _detectDisease() async {
       color: Colors.white.withOpacity(0.2),
     );
   }
-  
+
+  String _getWeatherBackgroundImage(String condition) {
+    condition = condition.toLowerCase();
+
+    if (condition.contains('clear') || condition.contains('sun')) {
+      return 'assets/images/weather/clear_sky.jpg';
+    } else if (condition.contains('cloud')) {
+      return 'assets/images/weather/cloudy.jpg';
+    } else if (condition.contains('rain') || condition.contains('drizzle')) {
+      return 'assets/images/weather/rain.jpg';
+    } else if (condition.contains('thunder')) {
+      return 'assets/images/weather/thunderstorm.jpg';
+    } else if (condition.contains('snow')) {
+      return 'assets/images/weather/snow.jpg';
+    } else if (condition.contains('mist') || condition.contains('fog')) {
+      return 'assets/images/weather/fog.jpg';
+    } else {
+      return 'assets/images/weather/default_weather.jpg';
+    }
+  }
+
   Widget _buildWeatherIcon(String iconCode) {
     // Custom weather icon based on the code
     IconData iconData;
     Color iconColor = Colors.white;
-    double size = 60.0;
-    
+    Color backgroundColor = Colors.white.withOpacity(0.2);
+    double size = 40.0;
+
     if (iconCode.contains('01')) {
       // Clear sky
-      iconData = iconCode.contains('d') 
+      iconData = iconCode.contains('d')
           ? Icons.wb_sunny_rounded
           : Icons.nightlight_round;
       iconColor = iconCode.contains('d') ? Colors.amber : Colors.white;
+      backgroundColor = iconCode.contains('d')
+          ? Colors.orange.withOpacity(0.2)
+          : Colors.indigo.withOpacity(0.3);
     } else if (iconCode.contains('02')) {
       // Few clouds
       iconData = iconCode.contains('d')
-          ? Icons.cloud_queue_rounded
+          ? Icons.wb_cloudy_rounded
           : Icons.nights_stay_rounded;
+      backgroundColor = iconCode.contains('d')
+          ? Colors.lightBlue.withOpacity(0.2)
+          : Colors.indigo.withOpacity(0.3);
     } else if (iconCode.contains('03') || iconCode.contains('04')) {
       // Scattered or broken clouds
       iconData = Icons.cloud_rounded;
+      backgroundColor = Colors.blueGrey.withOpacity(0.3);
     } else if (iconCode.contains('09')) {
       // Shower rain
       iconData = Icons.grain_rounded;
       iconColor = Colors.lightBlue.shade100;
+      backgroundColor = Colors.indigo.withOpacity(0.3);
     } else if (iconCode.contains('10')) {
       // Rain
       iconData = Icons.water_drop_rounded;
       iconColor = Colors.lightBlue.shade100;
+      backgroundColor = Colors.indigo.withOpacity(0.3);
     } else if (iconCode.contains('11')) {
       // Thunderstorm
       iconData = Icons.flash_on_rounded;
       iconColor = Colors.amber;
+      backgroundColor = Colors.deepPurple.withOpacity(0.3);
     } else if (iconCode.contains('13')) {
       // Snow
       iconData = Icons.ac_unit_rounded;
+      backgroundColor = Colors.lightBlue.withOpacity(0.2);
     } else if (iconCode.contains('50')) {
       // Mist/fog
       iconData = Icons.waves_rounded;
+      backgroundColor = Colors.grey.withOpacity(0.3);
     } else {
       // Default
       iconData = Icons.cloud_rounded;
     }
-    
-    return Container(
-      width: 80,
-      height: 80,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white.withOpacity(0.2),
-      ),
-      child: Icon(
-        iconData,
-        color: iconColor,
-        size: size,
-      ),
+
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        // Decorative background circles
+        Container(
+          width: 80,
+          height: 80,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: backgroundColor,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                spreadRadius: 1,
+              ),
+            ],
+          ),
+        ),
+        Container(
+          width: 60,
+          height: 60,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white.withOpacity(0.15),
+            border:
+                Border.all(color: Colors.white.withOpacity(0.5), width: 1.5),
+          ),
+          child: Icon(
+            iconData,
+            color: iconColor,
+            size: size,
+          ),
+        ),
+      ],
     );
   }
-  
-  
-  Widget _buildWeatherEffects(String condition, bool isNight) {
-    // This is a simplified version to avoid rendering issues
-    return const SizedBox.shrink();
-  }
-  
+
+  // Removed unused method
+
   Color _getWeatherShadowColor(String condition) {
     condition = condition.toLowerCase();
-    
+
     if (condition.contains('clear') || condition.contains('sun')) {
       return Colors.blue.withOpacity(0.3);
     } else if (condition.contains('cloud')) {
@@ -567,10 +709,10 @@ Future<void> _detectDisease() async {
       return Colors.green.withOpacity(0.3);
     }
   }
-  
+
   List<Color> _getWeatherGradient(String condition) {
     condition = condition.toLowerCase();
-    
+
     if (condition.contains('clear') || condition.contains('sun')) {
       return [
         const Color(0xFF1E88E5),
@@ -609,36 +751,7 @@ Future<void> _detectDisease() async {
       ];
     }
   }
-  
-  Widget _buildWeatherInfoItem(IconData icon, String value, String label) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          icon,
-          color: Colors.white,
-          size: 22,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Colors.white,
-          ),
-        ),
-      ],
-    );
-  }
+  // Removed unused method
 
   Widget _buildDetectionResult() {
     final localizations = AppLocalizations.of(context);
@@ -649,8 +762,10 @@ Future<void> _detectDisease() async {
     }
 
     final prediction = _detectionResult!['prediction'] as String;
-    final probabilities = _detectionResult!['probabilities'] as Map<String, dynamic>;
-    final diseaseInfo = _detectionResult!['disease_info'] as Map<String, dynamic>?;
+    final probabilities =
+        _detectionResult!['probabilities'] as Map<String, dynamic>;
+    final diseaseInfo =
+        _detectionResult!['disease_info'] as Map<String, dynamic>?;
 
     // Sort probabilities by value in descending order
     final sortedProbabilities = probabilities.entries.toList()
@@ -704,7 +819,8 @@ Future<void> _detectDisease() async {
                         ),
                       ],
                     ),
-                    child: Icon(Icons.eco, color: Colors.green.shade700, size: 24),
+                    child:
+                        Icon(Icons.eco, color: Colors.green.shade700, size: 24),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -712,7 +828,8 @@ Future<void> _detectDisease() async {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          localizations?.detectionResults ?? "Detection Results",
+                          localizations?.detectionResults ??
+                              "Detection Results",
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
@@ -736,7 +853,7 @@ Future<void> _detectDisease() async {
                 ],
               ),
             ),
-            
+
             // Disease info preview
             if (diseaseInfo != null)
               Container(
@@ -746,7 +863,8 @@ Future<void> _detectDisease() async {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                        Icon(Icons.info_outline,
+                            color: Colors.blue.shade700, size: 20),
                         const SizedBox(width: 8),
                         Text(
                           'Disease Information',
@@ -764,7 +882,8 @@ Future<void> _detectDisease() async {
                       decoration: BoxDecoration(
                         color: Colors.blue.shade50.withOpacity(0.5),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.blue.shade100, width: 1),
+                        border:
+                            Border.all(color: Colors.blue.shade100, width: 1),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -795,7 +914,8 @@ Future<void> _detectDisease() async {
                               );
                             },
                             child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 8, horizontal: 16),
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(20),
@@ -820,7 +940,8 @@ Future<void> _detectDisease() async {
                                     ),
                                   ),
                                   const SizedBox(width: 4),
-                                  Icon(Icons.arrow_forward, size: 16, color: Colors.blue.shade700),
+                                  Icon(Icons.arrow_forward,
+                                      size: 16, color: Colors.blue.shade700),
                                 ],
                               ),
                             ),
@@ -831,7 +952,7 @@ Future<void> _detectDisease() async {
                   ],
                 ),
               ),
-            
+
             // Probabilities section
             Container(
               padding: const EdgeInsets.all(20),
@@ -840,7 +961,8 @@ Future<void> _detectDisease() async {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.bar_chart, color: Colors.green.shade700, size: 20),
+                      Icon(Icons.bar_chart,
+                          color: Colors.green.shade700, size: 20),
                       const SizedBox(width: 8),
                       Text(
                         localizations?.probabilities ?? "Probabilities",
@@ -856,23 +978,30 @@ Future<void> _detectDisease() async {
                   ...sortedProbabilities.take(5).map((entry) {
                     final percentage = (entry.value * 100).toStringAsFixed(1);
                     final isTopPrediction = entry.key == prediction;
-                    
+
                     return Container(
                       margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 8, horizontal: 12),
                       decoration: BoxDecoration(
-                        color: isTopPrediction ? Colors.green.shade50 : Colors.white,
+                        color: isTopPrediction
+                            ? Colors.green.shade50
+                            : Colors.white,
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: isTopPrediction ? Colors.green.shade200 : Colors.grey.shade200,
+                          color: isTopPrediction
+                              ? Colors.green.shade200
+                              : Colors.grey.shade200,
                         ),
-                        boxShadow: isTopPrediction ? [
-                          BoxShadow(
-                            color: Colors.green.withOpacity(0.1),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ] : null,
+                        boxShadow: isTopPrediction
+                            ? [
+                                BoxShadow(
+                                  color: Colors.green.withOpacity(0.1),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ]
+                            : null,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -885,15 +1014,22 @@ Future<void> _detectDisease() async {
                                   entry.key,
                                   style: TextStyle(
                                     fontSize: 14,
-                                    fontWeight: isTopPrediction ? FontWeight.bold : FontWeight.normal,
-                                    color: isTopPrediction ? Colors.green[800] : Colors.grey[800],
+                                    fontWeight: isTopPrediction
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                    color: isTopPrediction
+                                        ? Colors.green[800]
+                                        : Colors.grey[800],
                                   ),
                                 ),
                               ),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: isTopPrediction ? Colors.green.shade100 : Colors.grey.shade100,
+                                  color: isTopPrediction
+                                      ? Colors.green.shade100
+                                      : Colors.grey.shade100,
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
@@ -901,7 +1037,9 @@ Future<void> _detectDisease() async {
                                   style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.bold,
-                                    color: isTopPrediction ? Colors.green[800] : Colors.grey[800],
+                                    color: isTopPrediction
+                                        ? Colors.green[800]
+                                        : Colors.grey[800],
                                   ),
                                 ),
                               ),
@@ -925,20 +1063,29 @@ Future<void> _detectDisease() async {
                                   height: 6,
                                   decoration: BoxDecoration(
                                     gradient: LinearGradient(
-                                      colors: isTopPrediction 
-                                          ? [Colors.green.shade300, Colors.green.shade500]
-                                          : [Colors.blue.shade300, Colors.blue.shade500],
+                                      colors: isTopPrediction
+                                          ? [
+                                              Colors.green.shade300,
+                                              Colors.green.shade500
+                                            ]
+                                          : [
+                                              Colors.blue.shade300,
+                                              Colors.blue.shade500
+                                            ],
                                       begin: Alignment.centerLeft,
                                       end: Alignment.centerRight,
                                     ),
                                     borderRadius: BorderRadius.circular(3),
-                                    boxShadow: isTopPrediction ? [
-                                      BoxShadow(
-                                        color: Colors.green.withOpacity(0.3),
-                                        blurRadius: 3,
-                                        offset: const Offset(0, 1),
-                                      ),
-                                    ] : null,
+                                    boxShadow: isTopPrediction
+                                        ? [
+                                            BoxShadow(
+                                              color:
+                                                  Colors.green.withOpacity(0.3),
+                                              blurRadius: 3,
+                                              offset: const Offset(0, 1),
+                                            ),
+                                          ]
+                                        : null,
                                   ),
                                 ),
                               ),
@@ -983,7 +1130,7 @@ Future<void> _detectDisease() async {
               FutureBuilder<Uint8List>(
                 future: _selectedImage!.readAsBytes(),
                 builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.done && 
+                  if (snapshot.connectionState == ConnectionState.done &&
                       snapshot.hasData) {
                     return Image.memory(
                       snapshot.data!,
@@ -1009,7 +1156,7 @@ Future<void> _detectDisease() async {
                 width: double.infinity,
                 fit: BoxFit.cover,
               ),
-            
+
             // Overlay gradient for better text visibility if needed
             Positioned(
               bottom: 0,
@@ -1027,7 +1174,8 @@ Future<void> _detectDisease() async {
                     ],
                   ),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Align(
                   alignment: Alignment.bottomLeft,
                   child: Text(
@@ -1047,7 +1195,6 @@ Future<void> _detectDisease() async {
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
@@ -1055,55 +1202,54 @@ Future<void> _detectDisease() async {
     final username = authProvider.username;
     final localizations = AppLocalizations.of(context);
     return Scaffold(
-  appBar: AppBar(
-    elevation: 0,
-    backgroundColor: Colors.green.shade50,
-    foregroundColor: Colors.green.shade800,
-    title: Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.green.shade50,
+        foregroundColor: Colors.green.shade800,
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: const Icon(Icons.eco, color: Colors.green),
+              child: const Icon(Icons.eco, color: Colors.green),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Leafy',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+                letterSpacing: 1.0,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 12),
-        const Text(
-          'Leafy',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-            letterSpacing: 1.0,
+        actionsIconTheme: IconThemeData(color: Colors.green.shade800),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadWeatherData,
+            tooltip: 'Refresh weather',
+            splashRadius: 24,
           ),
-        ),
-      ],
-    ),
-    actionsIconTheme: IconThemeData(color: Colors.green.shade800),
-    actions: [
-      IconButton(
-        icon: const Icon(Icons.refresh),
-        onPressed: _loadWeatherData,
-        tooltip: 'Refresh weather',
-        splashRadius: 24,
+          IconButton(
+            icon: const Icon(Icons.more_vert),
+            onPressed: () {},
+            splashRadius: 24,
+          ),
+        ],
       ),
-      IconButton(
-        icon: const Icon(Icons.more_vert),
-        onPressed: () => (context),
-        splashRadius: 24,
-      ),
-    ],
-  ),
-
-           drawer: Drawer(
+      drawer: Drawer(
         child: Column(
           children: [
             Container(
@@ -1139,9 +1285,10 @@ Future<void> _detectDisease() async {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    isLoggedIn 
-                        ? 'Hello, ${username ?? ""}!' 
-                        : (localizations?.welcomeMessage ?? 'Welcome to Leafy!'),
+                    isLoggedIn
+                        ? 'Hello, ${username ?? ""}!'
+                        : (localizations?.welcomeMessage ??
+                            'Welcome to Leafy!'),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 20,
@@ -1150,8 +1297,8 @@ Future<void> _detectDisease() async {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    isLoggedIn 
-                        ? 'Glad to see you again!' 
+                    isLoggedIn
+                        ? 'Glad to see you again!'
                         : 'Sign in to access all features',
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.9),
@@ -1182,7 +1329,8 @@ Future<void> _detectDisease() async {
                       if (isLoggedIn) {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const CommunityScreen()),
+                          MaterialPageRoute(
+                              builder: (context) => const CommunityScreen()),
                         );
                       } else {
                         _showLoginDialog(context);
@@ -1197,7 +1345,8 @@ Future<void> _detectDisease() async {
                         Navigator.pop(context);
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const NewLoginScreen()),
+                          MaterialPageRoute(
+                              builder: (context) => const NewLoginScreen()),
                         );
                       },
                     ),
@@ -1238,9 +1387,10 @@ Future<void> _detectDisease() async {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    isLoggedIn 
-                        ? 'Welcome, ${username ?? ""}!' 
-                        : (localizations?.welcomeMessage ?? 'Welcome to Leafy!'),
+                    isLoggedIn
+                        ? 'Welcome, ${username ?? ""}!'
+                        : (localizations?.welcomeMessage ??
+                            'Welcome to Leafy!'),
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.green.shade800,
@@ -1257,162 +1407,165 @@ Future<void> _detectDisease() async {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    localizations?.uploadLeafImage ?? 'Upload a leaf image to detect diseases and get instant results',
+                    localizations?.uploadLeafImage ??
+                        'Upload a leaf image to detect diseases and get instant results',
                     style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
                   ),
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Weather widget instead of crop selector
             _buildWeatherWidget(),
-            
+
             // Image display
             AnimatedSwitcher(
-  duration: const Duration(milliseconds: 300),
-  child: _selectedImage != null
-      ? _buildImageDisplay()
-      : Container(
-          margin: const EdgeInsets.all(16),
-          height: 200,
-          decoration: BoxDecoration(
-            color: Colors.green.shade50,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.green.shade100, width: 1.2),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.green.shade100.withOpacity(0.3),
-                blurRadius: 6,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.image_search,
-                  size: 64,
-                  color: Colors.green.shade300,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  localizations?.uploadLeafImage ?? 'Upload a leaf image',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.green.shade800,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+              duration: const Duration(milliseconds: 300),
+              child: _selectedImage != null
+                  ? _buildImageDisplay()
+                  : Container(
+                      margin: const EdgeInsets.all(16),
+                      height: 200,
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                            color: Colors.green.shade100, width: 1.2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.green.shade100.withOpacity(0.3),
+                            blurRadius: 6,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.image_search,
+                              size: 64,
+                              color: Colors.green.shade300,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              localizations?.uploadLeafImage ??
+                                  'Upload a leaf image',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.green.shade800,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
             ),
-          ),
-        ),
-),
 
 // Image selection buttons (Select & Capture)
-Container(
-  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-  child: Row(
-    children: [
-      Expanded(
-        child: ElevatedButton.icon(
-          onPressed: _pickImage,
-          icon: const Icon(Icons.photo_library_outlined),
-          label: Text(
-            localizations?.selectImage ?? 'Select Image',
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-          style: ElevatedButton.styleFrom(
-            elevation: 6,
-            backgroundColor: Colors.white,
-            foregroundColor: Colors.green.shade700,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(color: Colors.green.shade100),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _pickImage,
+                      icon: const Icon(Icons.photo_library_outlined),
+                      label: Text(
+                        localizations?.selectImage ?? 'Select Image',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        elevation: 6,
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.green.shade700,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(color: Colors.green.shade100),
+                        ),
+                        shadowColor: Colors.green.withOpacity(0.12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _captureImage,
+                      icon: const Icon(Icons.camera_alt_outlined),
+                      label: Text(
+                        localizations?.captureImage ?? 'Capture Image',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        elevation: 6,
+                        backgroundColor: Colors.green.shade600,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        shadowColor: Colors.green.withOpacity(0.25),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            shadowColor: Colors.green.withOpacity(0.12),
-          ),
-        ),
-      ),
-      const SizedBox(width: 16),
-      Expanded(
-        child: ElevatedButton.icon(
-          onPressed: _captureImage,
-          icon: const Icon(Icons.camera_alt_outlined),
-          label: Text(
-            localizations?.captureImage ?? 'Capture Image',
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-          style: ElevatedButton.styleFrom(
-            elevation: 6,
-            backgroundColor: Colors.green.shade600,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            shadowColor: Colors.green.withOpacity(0.25),
-          ),
-        ),
-      ),
-    ],
-  ),
-),
 
 // Detect disease button (Primary CTA)
-Container(
-  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-  width: double.infinity,
-  child: ElevatedButton(
-    onPressed: _isLoading ? null : _detectDisease,
-    style: ElevatedButton.styleFrom(
-      elevation: 8,
-      backgroundColor: Colors.green.shade700,
-      disabledBackgroundColor: Colors.green.shade300,
-      padding: const EdgeInsets.symmetric(vertical: 18),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
-      shadowColor: Colors.green.withOpacity(0.3),
-    ),
-    child: _isLoading
-        ? const SizedBox(
-            height: 26,
-            width: 26,
-            child: CircularProgressIndicator(
-              strokeWidth: 3,
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _detectDisease,
+                style: ElevatedButton.styleFrom(
+                  elevation: 8,
+                  backgroundColor: Colors.green.shade700,
+                  disabledBackgroundColor: Colors.green.shade300,
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  shadowColor: Colors.green.withOpacity(0.3),
+                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 26,
+                        width: 26,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 3,
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : Text(
+                        localizations?.detectDisease ?? 'Detect Disease',
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+              ),
             ),
-          )
-        : Text(
-            localizations?.detectDisease ?? 'Detect Disease',
-            style: const TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              letterSpacing: 0.8,
-            ),
-          ),
-  ),
-),
 
-
-            
             // Detection result
             _buildDetectionResult(),
-            
+
             const SizedBox(height: 20),
           ],
         ),
       ),
     );
   }
- Widget _buildDrawerItem({
+
+  Widget _buildDrawerItem({
     required IconData icon,
     required String title,
     required VoidCallback onTap,
@@ -1513,14 +1666,17 @@ Container(
                       Navigator.of(ctx).pop();
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const NewLoginScreen()),
+                        MaterialPageRoute(
+                            builder: (context) => const NewLoginScreen()),
                       );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 10),
                     ),
                     child: Text(localizations?.login ?? 'Login'),
                   ),
@@ -1531,43 +1687,18 @@ Container(
         ),
       ),
     );
-  }
-  // Helper method to extract optimal spray time text
-  String _getOptimalSprayTimeText(Map<String, dynamic>? sprayRecommendations) {
-    if (sprayRecommendations == null || 
-        !sprayRecommendations.containsKey('optimal_times') || 
-        sprayRecommendations['optimal_times'] == null ||
-        (sprayRecommendations['optimal_times'] as List).isEmpty) {
-      return 'No optimal spray times available';
-    }
-    
-    final optimalTime = sprayRecommendations['optimal_times'][0] as Map<String, dynamic>;
-    final formattedTime = optimalTime['formatted_time'] as String? ?? 'Unknown time';
-    
-    // Handle reasons as either String or List
-    String reasonsText;
-    if (optimalTime['reasons'] is List) {
-      reasonsText = (optimalTime['reasons'] as List).join(', ');
-    } else if (optimalTime['reasons'] is String) {
-      reasonsText = optimalTime['reasons'] as String;
-    } else {
-      reasonsText = 'Favorable conditions expected';
-    }
-    
-    return '$formattedTime - $reasonsText';
-  }
+  } // Removed unused method
 }
-
 
 extension on AppLocalizations? {
   get pleaseSelectLeafImage => null;
-  
+
   get detectionResults => null;
-  
+
   get weatherDataUnavailable => null;
-  
+
   get optimalSprayTime => null;
-  
+
   get retry => null;
 }
 
@@ -1576,8 +1707,4 @@ extension StringExtension on String {
   String capitalize() {
     return "${this[0].toUpperCase()}${substring(1)}";
   }
-
-  
 }
-
-
