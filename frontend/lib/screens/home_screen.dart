@@ -1112,17 +1112,24 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       margin: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.green.withOpacity(0.12),
+            blurRadius: 20,
+            spreadRadius: 2,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
+            spreadRadius: 0,
             offset: const Offset(0, 4),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
         child: Stack(
           children: [
             if (kIsWeb)
@@ -1134,16 +1141,21 @@ class _HomeScreenState extends State<HomeScreen> {
                       snapshot.hasData) {
                     return Image.memory(
                       snapshot.data!,
-                      height: 300,
+                      height: 350,
                       width: double.infinity,
                       fit: BoxFit.cover,
                     );
                   } else {
                     return Container(
-                      height: 300,
+                      height: 350,
                       width: double.infinity,
-                      color: Colors.grey.shade200,
-                      child: const Center(child: CircularProgressIndicator()),
+                      color: Colors.grey.shade100,
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: Colors.green.shade700,
+                          strokeWidth: 3,
+                        ),
+                      ),
                     );
                   }
                 },
@@ -1152,40 +1164,62 @@ class _HomeScreenState extends State<HomeScreen> {
               // For mobile platforms
               Image.file(
                 File(_selectedImage!.path),
-                height: 300,
+                height: 350,
                 width: double.infinity,
                 fit: BoxFit.cover,
               ),
 
-            // Overlay gradient for better text visibility if needed
+            // Overlay gradient for better text visibility
             Positioned(
               bottom: 0,
               left: 0,
               right: 0,
               child: Container(
-                height: 60,
+                height: 80,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
                     colors: [
-                      Colors.black.withOpacity(0.5),
+                      Colors.black.withOpacity(0.7),
                       Colors.transparent,
                     ],
                   ),
                 ),
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Align(
-                  alignment: Alignment.bottomLeft,
-                  child: Text(
-                    'Selected Image',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.check_circle_outline_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Image Ready for Detection',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.3,
+                        shadows: [
+                          Shadow(
+                            blurRadius: 3.0,
+                            offset: Offset(0, 1),
+                            color: Colors.black38,
+                          )
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -1427,17 +1461,26 @@ class _HomeScreenState extends State<HomeScreen> {
                   ? _buildImageDisplay()
                   : Container(
                       margin: const EdgeInsets.all(16),
-                      height: 200,
+                      height: 280,
                       decoration: BoxDecoration(
-                        color: Colors.green.shade50,
-                        borderRadius: BorderRadius.circular(16),
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Colors.green.shade50,
+                            Colors.green.shade100.withOpacity(0.3),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(24),
                         border: Border.all(
-                            color: Colors.green.shade100, width: 1.2),
+                            color: Colors.green.shade200.withOpacity(0.5),
+                            width: 1.5),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.green.shade100.withOpacity(0.3),
-                            blurRadius: 6,
-                            offset: const Offset(0, 3),
+                            color: Colors.green.shade100.withOpacity(0.4),
+                            blurRadius: 15,
+                            spreadRadius: 1,
+                            offset: const Offset(0, 8),
                           ),
                         ],
                       ),
@@ -1445,19 +1488,50 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(
-                              Icons.image_search,
-                              size: 64,
-                              color: Colors.green.shade300,
+                            Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.8),
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color:
+                                        Colors.green.shade200.withOpacity(0.5),
+                                    blurRadius: 20,
+                                    spreadRadius: 0,
+                                    offset: const Offset(0, 8),
+                                  ),
+                                ],
+                                border: Border.all(
+                                  color: Colors.green.shade100,
+                                  width: 2,
+                                ),
+                              ),
+                              child: Icon(
+                                Icons.image_search_rounded,
+                                size: 56,
+                                color: Colors.green.shade600,
+                              ),
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 24),
                             Text(
                               localizations?.uploadLeafImage ??
                                   'Upload a leaf image',
                               style: TextStyle(
-                                fontSize: 16,
+                                fontSize: 18,
                                 color: Colors.green.shade800,
-                                fontWeight: FontWeight.w500,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              'Select or capture a clear image of a plant leaf',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.green.shade700.withOpacity(0.7),
+                                fontWeight: FontWeight.w400,
                               ),
                             ),
                           ],
@@ -1472,44 +1546,105 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Row(
                 children: [
                   Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _pickImage,
-                      icon: const Icon(Icons.photo_library_outlined),
-                      label: Text(
-                        localizations?.selectImage ?? 'Select Image',
-                        style: const TextStyle(fontWeight: FontWeight.w600),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.green.withOpacity(0.10),
+                            blurRadius: 10,
+                            spreadRadius: 0,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
-                      style: ElevatedButton.styleFrom(
-                        elevation: 6,
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.green.shade700,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          side: BorderSide(color: Colors.green.shade100),
+                      child: ElevatedButton.icon(
+                        onPressed: _pickImage,
+                        icon: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade50,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.photo_library_rounded,
+                            color: Colors.green.shade700,
+                            size: 20,
+                          ),
                         ),
-                        shadowColor: Colors.green.withOpacity(0.12),
+                        label: Padding(
+                          padding: const EdgeInsets.only(left: 8.0),
+                          child: Text(
+                            localizations?.selectImage ?? 'Select Image',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                              letterSpacing: 0.3,
+                              color: Colors.green.shade800,
+                            ),
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          elevation: 0,
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.green.shade700,
+                          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            side: BorderSide(color: Colors.green.shade100, width: 1.5),
+                          ),
+                        ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _captureImage,
-                      icon: const Icon(Icons.camera_alt_outlined),
-                      label: Text(
-                        localizations?.captureImage ?? 'Capture Image',
-                        style: const TextStyle(fontWeight: FontWeight.w600),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.green.withOpacity(0.25),
+                            blurRadius: 15,
+                            spreadRadius: 0,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
-                      style: ElevatedButton.styleFrom(
-                        elevation: 6,
-                        backgroundColor: Colors.green.shade600,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                      child: ElevatedButton.icon(
+                        onPressed: _captureImage,
+                        icon: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.3),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
                         ),
-                        shadowColor: Colors.green.withOpacity(0.25),
+                        label: const Padding(
+                          padding: EdgeInsets.only(left: 8.0),
+                          child: Text(
+                            'Capture Image',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          elevation: 0,
+                          backgroundColor: Colors.green.shade700,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -1521,37 +1656,86 @@ class _HomeScreenState extends State<HomeScreen> {
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
               width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _detectDisease,
-                style: ElevatedButton.styleFrom(
-                  elevation: 8,
-                  backgroundColor: Colors.green.shade700,
-                  disabledBackgroundColor: Colors.green.shade300,
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(24),
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.green.shade600,
+                      Colors.green.shade800,
+                    ],
                   ),
-                  shadowColor: Colors.green.withOpacity(0.3),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.green.withOpacity(0.3),
+                      blurRadius: 15,
+                      spreadRadius: 0,
+                      offset: const Offset(0, 6),
+                    ),
+                    BoxShadow(
+                      color: Colors.green.shade900.withOpacity(0.15),
+                      blurRadius: 30,
+                      spreadRadius: 0,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 26,
-                        width: 26,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 3,
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.white),
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _detectDisease,
+                  style: ElevatedButton.styleFrom(
+                    elevation: 0,
+                    backgroundColor: Colors.transparent,
+                    disabledBackgroundColor: Colors.green.shade300,
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    shadowColor: Colors.transparent,
+                  ),
+                  child: _isLoading
+                      ? Container(
+                          padding: const EdgeInsets.all(8),
+                          height: 42,
+                          width: 42,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const CircularProgressIndicator(
+                            strokeWidth: 3,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.search_rounded,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Text(
+                              localizations?.detectDisease ?? 'Detect Disease',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                          ],
                         ),
-                      )
-                    : Text(
-                        localizations?.detectDisease ?? 'Detect Disease',
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: 0.8,
-                        ),
-                      ),
+                ),
               ),
             ),
 
