@@ -13,7 +13,7 @@ import 'services/disease_service.dart'; // Import DiseaseService
 import 'screens/home_screen.dart';
 import 'screens/community_screen.dart';
 import 'screens/image_picker_screen.dart';
-import 'screens/language_selection_screen.dart';
+import 'screens/language_selection_screen_new.dart';
 import 'theme/app_theme.dart';
 
 void main() async {
